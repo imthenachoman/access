@@ -1,0 +1,148 @@
+This is access - authenticator for Unix systems and powerful privilege separator,
+privilege manager and privilege automation tool.
+
+The aim of access is to extend authentication options on classic and modern Unix
+and Unix-like systems as well as to ease switching of privileges between users,
+separate the roles and limit untrusted users to only permitted commands.
+
+It's like well-known sudo, but access extends the original idea behind it, as well as fixes
+some fatal flaws which were in original sudo.
+
+FEATURES
+
+access has many features which make it unique. Below is a short overview list.
+
+- aims to be very portable, even to legacy and crippled systems,
+- can run on systems where no password database is defined or present,
+- uses simple hierarchical rule system akin iptables one:
+  rules parsed as they specified, from top to bottom, in one single pass,
+- offers possibilities to specify all Unix credentials beyond simple uid:gid pair,
+- rules are very precise about both invoker and target users identities:
+  privileges can be specified down to single gid marker present/absent in grouplist,
+- offers possibility to specify arbitrary environment variables, and to reset them back,
+- offers possibilities to set working directory, chroot directory,
+- offers possibility to log everything required to trace the invoker,
+- offers possibility to lock only to one program invocation per single uid,
+  so brute force is made impossible at all,
+- logging can be disabled per rule, both failed attempts and successful ones separately,
+- logging is possible to separate file or to syslog, if supported by platform,
+- it is possible to match patterns either with basic fnmatch, with extended regular expressions
+  or simple case sensitive strings comparison.
+- passwords can be asked for: invoker user itself, destination user, superuser,
+  per rule defined hash or not asked (bypass password asking) at all,
+- very precise about environment inside which the target program runs,
+- always obeys superuser: superuser is an exempt in access,
+- may detach current tty from target program on systems which support injecting
+  arbitrary characters (including CR/NL) into current terminal session,
+  so TIOCSTI tty ioctl attacks will not be possible.
+- offers possibility to run an external program which "audits" the invoker intent and
+  judges about it, altering access's own decision,
+- offers possibility to run an external password asking program: a GUI dialog or text mode one,
+- offers a separate setuid server to support setuid crippled systems like android,
+- gives users ability to discover other users public credentials with embedded commands,
+- customised password prompts and deny messages,
+- setting environment variables from config file per rule or multiple rules,
+- offers an embedded password testers to verify users passwords,
+- offers an embedded tool to generate password hashes,
+- offers a basic su(1) embedded implementation,
+- can be configured to emulate su(1) transparently, and freely supports BSD "wheel" group,
+- provides a base of portable and well tested code: tf1024, getpasswd, various standard safe function wrappers,
+- can be readily used as a sudo(8) replacement, yet both are completely incompatible ...
+- was tested and ported to: Linux, Free/Net/OpenBSD, OS X, Solaris, Haiku, Syllable, Ancient C89 Linux, Android, Raspberry PI, MIPS Linux routers and more,
+
+... and many more, because the full list will be too long for this document.
+
+INSTALLATION
+
+Installation should be simple. You need to look into Makefile and config.h and make sure that
+options for your platform are correct.
+You may also need to edit port.h header file, or directly alter some
+definitions in access.h header file to match your taste and needs.
+
+You will need a C compiler installed. Your C compiler must support C89 language constructs,
+or better. Usually, modern systems have a gcc C compiler.
+access development is also done using gcc compiler, although older version.
+
+You will need a GNU make. Version 3.81 was used. Older could also work, but this is untested.
+
+Then just run
+
+	% make
+
+, wait for process to complete.
+
+To install access binary, run
+
+	# make install
+
+as superuser, or copy result "access" executable to any place you want, then give it setuid bit:
+
+	# chmod u+s /path/to/access
+
+Note that "make install" sets this bit automatically for you.
+
+It is recommended that you will give access setuid bit. Others mechanisms like Linux
+file system capabilities can also work, but they too limited and ugly. Author will never recommend them.
+
+access does not test, report or refuse to run nor detect "special cases", or "untrusted systems".
+In fact, access does not care about target operating system or platform. If it was compiled
+successfully, then it will probably work. access only assumes that provided runtime environment
+is POSIX compatible. access only tries to detect a special permissions on it's config file.
+access also assumes at least POSIX.1-2001 and C99 compatibility of runtime environment.
+Optionally it can be ported to pure old C89 systems, or "impaired" systems with incomplete
+or broken standard conformance, such as android, with help of included "ports".
+
+CONFIGURATION
+
+access does not require any configuration if it will be run only by superuser. But to be sure
+that no privileges are being hijacked, ensure creating an empty /etc/access.conf file owned
+by 0:0 and mode 0600, or remove a setuid bit from access binary.
+
+To configure access in a multiuser environment for usage by multiple users, please read included
+"access.conf.5" manual page, or it's text variant.
+
+To see command line options accepted by access, run it with "-h", or read included "access.8"
+manual page (or it's text variant).
+
+PROTECTION
+
+Installing access binary as world setuid executable is sufficient. You should not make it
+readable by anyone other than superuser. However, you can further limit access to the tool
+by creating a special group, for example, named "access", then running these commands:
+
+	# chown 0:access /path/to/access
+	# chmod 4710 /path/to/access
+
+(do not exit superuser shell until you will test you can get back in another tty)
+Since that, only users belonging to "access" group able to run access itself, and then only
+access will authenticate them, if told to.
+
+I recommend this approach on desktop systems, but with only change that, instead of creating
+a special group, one can set group to the main system user's primary group.
+
+access tries to detect that it's config file is well protected. It checks it for readability
+by other users and ensures that only superuser has access to this file and this file
+is owned by superuser. However access cannot detect that it's binary file is well protected too,
+because there is no portable way of finding a binary for itself.
+
+When logging to file, access ensures that log file is protected, so only superuser can read it.
+
+SEE ALSO
+
+The main documentation for this program is stored in "access.8" and "access.conf.5" manual pages.
+
+AUTHORS
+
+access was written by Andrey Rys (rys@lynxlynx.ru).
+
+LICENSE
+
+MIT/X11 permissive.
+See COPYRIGHT file.
+
+DISCLAIMER
+
+This tool is a _proof of concept_. It does not claim security bug cleanliness.
+You take full responsibility by using it, not the authors of the tool.
+
+There is NO WARRANTY of any kind for this program, it's parts or derivatives.

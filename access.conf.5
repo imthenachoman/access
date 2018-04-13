@@ -1,0 +1,1798 @@
+.Dd 13Apr2018
+.Dt ACCESS.CONF 5
+
+.Sh NAME
+.Nm access.conf
+.Nd master configuration file and rules for 
+.Xr access 8 .
+
+.Sh DESCRIPTION
+.Nm
+defines default settings and rules for access, defines access behavior and setups environment. It defines new users or redefines existing ones. It's rules permit or deny local users to run commands, login as another users and much more beyond traditional privilege separation tools.
+
+.Nm
+consists of three sections: the defaults section which settings apply to any rule defined (if not overriden however by rule itself), virtual users section, which (re)defines users recognised by access or adds new ones, and rules section, which define what access must allow or deny, and how it should setup target environment.
+
+.Nm
+is a simple ASCII text file, but can contain Unicode or other character sets symbols. access does not interpret different character sets, and processes everything in 8-bit clean way.
+
+Comments are traditional as with every other Unix program: line starting with '#' becomes a comment. However comment capabilities are limited: because target command line to be matched can include a '#' character, this character is not interpreted at arbitrary location, but only at beginning of a line.
+
+Multiline shell style backslash escapes are understood. Any tab characters before and after them are removed. Spaces will be left intact.
+
+access will work for superuser even if this file does not exist. For security reasons, access tests if this file is created by user other than superuser. If it is, access will refuse to operate even if run by superuser, to draw attention to the problem. If file is not found when access is run by unprivileged user, access will also refuse to run and will display a diagnostic message.
+
+.Sh GENERAL SYNTAX
+
+Each specification line is started with
+.Sq %
+sign at the beginning of a line, followed immediately by a special reserved keyword.
+
+These are keywords which
+.Sy access
+understands:
+.Dq %set ,
+.Dq %unset
+- controls access internal state, defines user variables;
+.Dq %user
+- defines or redefines virtual users.
+.Dq %setenv
+- overrides environment variables,
+.Dq %unsetenv
+- removes environment variables from invoker environment, and undefines overriden ones,
+.Dq %delenv
+- just removes definition that was set previously with
+.Sq %setenv
+or
+.Sq %unsetenv ,
+.Dq %keepenv
+- defines a environment variable which must be preserved,
+.Dq %unbanenv
+- unbans a predefined banned environment variable or environment variable pattern,
+.Dq %unkeepenv
+- disables a predefined trusted environment variable.
+Special
+.Dq %rules
+keyword explicitly breaks parsing of defaults and starts parsing rules section from next line. This is needed if you have settings which share the invisible defaults-rules border. Without it, your possibly first rule specific settings will apply to defaults instead.
+
+Each specification accepts one or more required arguments of different syntax. The syntax for these arguments is described later in this manual. Arguments are divided by spaces.
+
+Rules in rules section do not start with a specific keyword. Instead, they are specified as is: one rule per line. The syntax for rules is to be described in
+.Sx RULES SECTION
+below.
+
+Any section can be omitted completely, or entire file can be empty.
+
+Invalid, malformed or syntactically incorrect lines are ignored (they are parsed however, and everything valid until error is accepted and applied). However, there are places where an error can be generated instead of silent ignore.
+.Em It is a duty of a system administrator (superuser) to write proper and valid configuration.
+access does not check validity of configuration file, and does not include a tool to test validity of
+.Nm .
+
+.Sh DEFAULTS SECTION
+Each default setting is defined by a
+.Dq %set
+keyword at beginning of line.
+
+.Dq %set
+accepts only one argument: either a
+.Dq flag
+without any argument,
+.Dq setting=value
+or
+.Dq setting=[complexvalue]
+settings specifiers.
+
+.Dq %set
+is limited to single
+.Dq flag
+- although rules lines permit to specify multiple flags in their
+.Dq [flags]
+specifier, the limitation is intentional because in early versions of access, it was very confusing to learn that some flags specific to default section could not be specified in the list of ordinary rules flags, so it was like:
+.Bd -literal -offset 8n
+%set pwecho
+%set pwinval
+%set tty,opt_d,opt_D
+.Ed
+
+Now, you must do it like that:
+.Bd -literal -offset 8n
+%set pwecho
+%set pwinval
+%set tty
+%set opt_d
+%set opt_D
+.Ed
+
+, which is still not ideal, but at least clearer.
+
+Here is a full list of accepted flags and settings that alter access defaults:
+.Bl -tag -width indent
+.It Va spath=secure path
+Sets internal
+.Em secure path
+: a list of colon separated directories, from which only binaries are permitted to execute when cmdline does not include a full path to binary (attempt to
+.Xr execvp 3
+).
+access searches for the binary by looking in every directory listed by
+.Em spath ,
+and if binary is not found, emits a not found error condition.
+access also sets
+.Ev PATH
+environment variable from this setting when it runs a target program.
+
+Default is
+.Dq /bin:/sbin:/usr/bin:/usr/sbin
+(can be changed in config.h)
+
+.It Va supath=secure superuser path
+Same as
+.Va spath ,
+but used only if destination user is superuser. Normal
+.Va spath
+can then contain only regular user directories such as
+.Pa /bin ,
+.Pa /usr/bin ,
+.Pa /usr/local/bin ,
+and
+.Va supath
+can contain paths such as
+.Pa /sbin .
+In most cases this is not needed, but this setting is provided to separate regular and superuser secure directories.
+
+.It Va regex=[yes|no]
+Enable regex matching of patterns. By default,
+.Em access
+does
+.Xr fnmatch 3
+matching of patterns (very lightweight regex subform). Setting this to
+.Sq no
+will reset it back to fnmatch. See
+.Sx REGULAR EXPRESSIONS
+section below for additional information.
+
+.It Va fnmatch=[yes|no]
+Enable fnmatch matching of patterns. This is default. Setting this to
+.Sq no
+will disable both regex and fnmatch matching and will use only simple compare matching.
+
+.It Va delay=useconds
+Delay for specified
+.Em useconds
+if invoker is made a mistake.
+This completely blocks invoker's tty for this amount of time.
+
+Default is
+.Em 1000000
+(1 second).
+
+.It Va logfile=/path/to/access.log
+Specifies alternate log file location at runtime. Log file is not created or appended when logging to syslog.
+
+Default is
+.Dq /var/log/access.log
+(can be changed in config.h)
+
+.It Va syslog
+Do logging to syslog instead of to dedicated file.
+
+.It Va nocommands
+Disable
+.Op Fl c
+option usage completely except for superuser.
+
+Note that this may hurt
+.Xr su 1
+embedded compatibility program, because it relies on
+.Op Fl c
+commands during it's run.
+
+.It Va fullinfo
+Enable full information grabbing:
+.Sy access
+will now always remember invoker and new environment strings, as well as full invocation cmdline. Without this it is not possible to log base64 versions of cmdline and invoker's environ. Because invoker may supply arbitrarily long command line or environment block, it is not enabled by default to prevent builtin memory area hog. Most users will not need this at all anyway.
+
+Note that this setting must be specified before any rules processing. It will not work from a rules section.
+
+.It Va timefmt=str
+Set internal time conversion format specifier. Human readable timestamps which appear in logs, format templates and environment variables supplied to helper programs will be formatted with
+.Xr strftime 3
+using this specifier. The default is
+.Sq %c
+
+.It Va logfmt=str
+Set internal log format from a set of format templates. Any documented format templates are accepted, and user variables are parsed too.
+See
+.Sx FORMAT TEMPLATES
+section for a list.
+
+.It Va pwecho
+Will cause access to display password typing progress in form of echoing back a masked 'x' character per each character of typed password. By default access acts as a
+.Xr login 1
+and
+.Xr su 1
+programs (which are likely to use
+.Xr getpass 3
+function): hide typed password and do not echo back any hints about it's length.
+The behavior of
+.Xr getpass 3
+may be annoying: in cases when user needs to know that the password is actually gets typed (slow remote link connection, or when copy-pasting password from somewhere else).
+
+.It Va prompt=str
+Specifies alternate prompt when access asks invoker for password. It does not append any characters after, so this string will be written exactly to invoker tty. It can contain format templates inside, which are described in
+.Sx FORMAT TEMPLATES
+section.
+
+Default is
+.Dq Password:
+
+.It Va denymsg=str
+Specifies alternate deny message, displayed when invoker made a mistake. This message is written to invoker's tty just after specified
+.Va delay ,
+and access writes to log if specified and exits, returning error code.
+Like
+.Va prompt= ,
+it supports
+.Sx FORMAT TEMPLATES ,
+so you can customise this error message in the same way.
+
+Default is
+.Dq Permission denied.
+
+.It Va lockpath=str
+Specifies full path to a directory where lock files are created, and lock file pattern itself.
+Format templates are accepted and parsed here.
+
+Default is
+.Dq /var/run/%{srcuid}.access
+which guarantees that single user cannot run access multiple times even if he has different groups in his grouplist or has different primary group membership.
+
+.It Va umask=octal
+Specify default umask to be set before target program run.
+
+Default is
+.Em 0022.
+
+.It Va log
+Do logging of every invoked command.
+
+This is default.
+
+.It Va nolog
+Turns off logging of invoked command.
+
+.It Va logfail
+Log failed attempts.
+
+This is default.
+
+.It Va nologfail
+Do not log failed attempts.
+
+.It Va minfd=int
+Specify minimum fd from which closeall routine will start closing leakage file descriptors.
+access prevents leaking any unused or forgot file descriptors from invoker environment (there maybe malicious usage of leaked fds).
+
+.Op Fl C
+can override this, if permitted.
+
+By default, access starts from number 
+.Em 3
+(omit standard fds).
+
+.It Va maxfd=int
+Specify maximum fd to which closeall routine will close leakage file descriptors.
+
+By default, access asks system for a possible limit. This sets hard it explicitly and access stops asking system.
+
+Specifying large values could result in slow starting of programs through access.
+
+.It Va pw
+Ask for
+.Em invoker's
+password.
+On some platforms and systems, invoker can have a writable password or shadow file(s), and this setting can lead to privilege escalation.
+
+This is default.
+
+.It Va pw=hash
+Per rule password replacement. If password is asked, it always matched with provided
+.Em hash .
+The hash can be either what system libc
+.Xr crypt 3
+accepts, or Skein internal one, generated with
+.Dq access -c mkpwd ,
+if Skein hash support was compiled in.
+
+.It Va nopw
+Do not ask any passwords, authentication successful if no other conditions are blocking.
+
+.It Va dstpw
+Ask for target user password.
+
+.It Va supw
+Ask for superuser password. Superuser's name is resolved by access at the very beginning.
+
+.It Va false
+Forces access to consider authentication failure. This can be useful in rules, not globally, to specify "always false" rules with wide user or cmdline wildcards. As an example, you can prevent accessing a "sda" disk device by most privileged user so he will not destroy data on it:
+.Bd -literal -offset 8n
+* * false,nopw,nolog,nologfail *sda*
+.Ed
+
+.It Va pwinval
+If access command line option
+.Op Fl [X]
+is banned with
+.Va noopt_[X]
+and it does not require additional permission parameters to be set, then if this is specified,
+permits invoker to reenter password to prove his identity. Then, sysadmin can configure what
+password type must be asked by setting one of password flags listed above.
+access defaults to banning any activity early if one of banned command line options is specified
+by the invoker, denying him even to input a valid password, thus
+.Va pwinval
+degrades this ban to password level authentication. Note that
+.Va nopw
+flag will not have any effect there anymore if banned cmdline option state was triggered by invoker.
+
+.It Va tty
+Verify that invoker runs access from an existing terminal. If this is not a case (for example, access is invoked from a daemon), authentication will fail.
+
+.It Va notty
+Do not verify invoker's tty state.
+
+.It Va fromtty=/dev/tty
+Specify a valid tty for which a test will be successful. For example, one can restrict privileged commands to ttys that are named as
+.Dq /dev/tty* .
+
+.It Va ttydt
+Detach tty from target program, but still accept input. Prevents tty hijacking on vulnerable operating system kernels.
+
+.It Va nottydt
+Do not detach tty from target program.
+
+.It Va minenv
+Clear invoker provided environment and repopulate it with sensitive variables.
+
+This is default.
+
+.It Va nominenv
+.It Va userenv
+Do not clear invoker provided environment and pass it over. However, replace or set sensitive variables.
+
+.It Va keepenv
+Try to keep every piece of invoker provided environment. Do not set sensitive variables. Dangerous variables (such as
+.Ev PATH
+and banned ones) are still reset or removed.
+
+.It Va euid
+.It Va egid
+Enable setuid or setgid usage. This does not permit to set arbitrary ids, if not permitted by rules.
+
+.It Va noeuid
+.It Va noegid
+Disable setuid or setgid usage. Even if permitted by matching rule, setting euid != ruid will be denied. The same is with egid.
+
+.It Va numid
+Permit numeric user and group names (such as specifying
+.Op Fl u Ar 1000
+instead of specifying real user name which owns 1000 uid)
+
+.It Va nonumid
+Disable numeric user and group names. This is default.
+
+.It Va usronly
+Disables setuid and setgid, numeric user and group names and specifying primary group and grouplists. In short, it disables
+.Op Fl UgGsStTxX
+options and permits only
+.Op Fl u
+option.
+This flag does not have an opposite analog, but can be cancelled with others enabling specified features.
+
+.It Va nousronly
+Cancels any effects previously imposed by
+.Va usronly .
+
+.It noopt_[X]
+Disable usage of command line option 
+.Em X .
+.Em X
+can be one of
+.Op dDeSaAPIbBxnFCLQplwv .
+Any other command line options are declared as free for use.
+
+By default, these command line options are restricted, but can be enabled:
+.Op aACdeLQ
+
+.It opt_[X]
+Enable usage of command line option
+.Em X .
+
+.It nologin
+Synonym for
+.Va noopt_l ,
+disables logins by using any of
+.Op Fl Il .
+
+.It Va nolock
+By default, access creates a lock file for every uid running it, successfully or unsuccessfully. This disables lock file creation thus disables multiple running processes check.
+
+.It Va warnusr
+Give invoker a chance to analyze how a target program will be executed: access will display a message that warns invoker about what to be done, prints target resolved credentials (both ids and names):
+.Bd -literal -offset 8n
+You are about to execute this:
+`id -u`,
+as root(0),root(0):root(0),root(0)[root]
+Continue?
+.Ed
+
+It will then wait for invoker confirmation where typing 'y' or 'Y' will confirm agreement and 'n' or 'N' as disagreement. Other characters and control codes are
+.Em disabled
+and if user will try to type something else, he will get a single hint about what to type in.
+
+Note that disagreement means failure and likely result in log file entry.
+
+.It Va nowarnusr
+Do not warn invoker about what to be done.
+
+.It Va sk_localid=str
+Specify
+.Sq localid
+for the internal Skein engine (if compiled in), as if it was specified in
+.Pa /etc/skcrypt.conf .
+Value specified here overrides anything that comes from
+.Pa /etc/skcrypt.conf .
+
+.It Va sk_offset=int
+Specify
+.Sq offset
+for the internal Skein engine (if compiled in), as if it was specified in
+.Pa /etc/skcrypt.conf .
+Value specified here overrides anything that comes from
+.Pa /etc/skcrypt.conf .
+
+.It Va sk_passes=int
+Specify
+.Sq passes
+for the internal Skein engine (if compiled in), as if it was specified in
+.Pa /etc/skcrypt.conf .
+Value specified here overrides anything that comes from
+.Pa /etc/skcrypt.conf .
+
+.It Va sk_saltlen=int
+Specify
+.Sq saltlen
+for the internal Skein engine (if compiled in), as if it was specified in
+.Pa /etc/skcrypt.conf .
+Value specified here overrides anything that comes from
+.Pa /etc/skcrypt.conf .
+
+.It Va sk_datalen=int
+Specify
+.Sq datalen
+for the internal Skein engine (if compiled in), as if it was specified in
+.Pa /etc/skcrypt.conf .
+Value specified here overrides anything that comes from
+.Pa /etc/skcrypt.conf .
+
+Note that some
+.Dq %set
+internal settings can be changed at any time doing
+.Dq %set
+again, while others are not (especially if these "settings" are really a functions behind the scene).
+
+.It Va root=/chroot/dir
+For use with
+.Op Fl R ,
+this flag permits chroot into specified directory. Without
+.Op Fl R
+it is not automatically performed, so invoker interaction is required.
+
+Note:
+.Va opt_R
+is mandatory to enable
+.Op Fl R
+usage.
+
+.It Va dir=/change/dir
+Like
+.Va root
+, but for use with
+.Op Fl D
+
+.It Va cwd=/current/dir
+Match by current working directory.
+
+.It Va taskprio=int
+Change process priority to the value. This value will be taken as is by
+.Xr setpriority 2 .
+
+.It Va rlimit=rlimspec
+Define (
+.Sq %set
+), or undefine (
+.Sq %unset
+) resource limit. All resource limits are to be set just before running target cmdline.
+.Em rlimspec
+is defined in format of:
+.Dq nrlim:soft:hard ,
+where
+.Em nrlim
+specifies number or symbolic name of resource limit (such as
+.Dq RLIMIT_AS
+),
+.Em soft
+is soft limit number, which user may raise up to
+.Em hard
+limit number. All numbers except number of resource limit may accept prefixes (for example, 4k will be translated to 4096).
+
+.It Va blame=str
+Append
+.Dq str
+to internal reason string. This string gets logged when invoker is insulted for invalid action, after all the data was recorded about invoker, destination user, environment etc., and comes last in log file entry. Appending
+.Dq str
+will enclose original access's reason string into parenthesis after
+.Dq str
+reason string. If
+.Va denymsg=
+default setting contains
+.Va %{reason}
+format template, then
+.Em this reason string
+is displayed to invoker in final deny message, not the internal one.
+
+.It Va audit=cmdline
+Specifies an
+.Em external privileged program
+which will be supplied with a very detailed information about access internals:
+.Bl -bullet -compact
+.It
+.Ev ACCESS_PID
+: contains process identifier number of access itself
+.It
+.Ev ACCESS_PPID
+: contains process identifier of invoker (so you can mess with it by sending signals to it)
+.It
+.Ev ACCESS_DATETIME
+: contains formatted date and time string in common
+.Xr date 1
+default format, as it goes into log by default, without
+.Va loguts
+default is set.
+.It
+.Ev ACCESS_TIMESTAMP
+: contains invocation timestamp in raw Unix time format (seconds since Epoch)
+.It
+.Ev ACCESS_UID
+: contains invoker uid
+.It
+.Ev ACCESS_USER
+: contains invoker resolved user name
+.It
+.Ev ACCESS_GID
+: contains invoker primary gid
+.It
+.Ev ACCESS_GROUP
+: contains invoker resolved primary group name
+.It
+.Ev ACCESS_GIDS
+: contains full list of invoker group ids in numeric form.
+.It
+.Ev ACCESS_GROUPS
+: contains full list of invoker groups (grouplist with resolved names).
+The list members are guaranteed to be in sync with
+.Ev ACCESS_GIDS
+list members, so that each n-th member from gids list matches n-th member from groups one.
+.It
+.Ev ACCESS_D_UID
+: contains target uid
+.It
+.Ev ACCESS_D_EUID
+: contains target effective uid
+.It
+.Ev ACCESS_D_USER
+: contains target resolved user name
+.It
+.Ev ACCESS_D_EUSER
+: contains target resolved effective user name
+.It
+.Ev ACCESS_D_GID
+: contains target primary gid
+.It
+.Ev ACCESS_D_EGID
+: contains target primary effective gid
+.It
+.Ev ACCESS_D_GROUP
+: contains target resolved group name
+.It
+.Ev ACCESS_D_EGROUP
+: contains target resolved effective group name
+.It
+.Ev ACCESS_D_GIDS
+: contains full list of target group ids in numeric form.
+.It
+.Ev ACCESS_D_GROUPS
+: contains full list of target groups (grouplist with resolved names).
+The list members are guaranteed to be in sync with
+.Ev ACCESS_D_GIDS
+list members, so that each n-th member from gids list matches n-th member from groups one.
+.It
+.Ev ACCESS_FLAGS
+: contains a copy of triggered rule flags part
+.It
+.Ev ACCESS_LINE
+: contains a copy of triggered rule
+.It
+.Ev ACCESS_MATCH_TYPE
+: contains a fixed string of match algorithm used to detect the rule:
+.Sq regex
+means that regular expressions were used,
+.Sq fnmatch
+means that fnmatch basic matching was used,
+.Sq strcmp
+means that simple case sensitive string comparison was used.
+.It
+.Ev ACCESS_BINPATH
+: contains full resolved path to a binary which is to be invoked. Safe path rules apply. Command line arguments are omitted. This variable will disappear if binary is not found within safe path (and will not be found during execution).
+.It
+.Ev ACCESS_CMDLINE
+: contains full translated target command line, which is matched with rules cmdline parts.
+It is better to parse ACCESS_ARGS starting from ACCESS_FIRST_ARG: the values in ACCESS_ARGS are guaranteed not to be interpreted in special ways (they are raw values). The value given there is a human readable string which should be shown in dialogs.
+.It
+.Ev ACCESS_HASHBANG
+: in case when access is invoked from a "#!" header of Unix script, this variable contains a copy of first
+.Em access
+command line argument before it will be refined into separate parts.
+.It
+.Ev ACCESS_USERENV
+: contains base64 string which encodes all environment variables that invoker passed to us
+.It
+.Ev ACCESS_ENVIRON
+: contains base64 string which encodes target program environment
+.It
+.Ev ACCESS_FIRST_ARG
+: contains a number index from which actual invoker/target command line starts (seeking to which you will skip all access command line options), counting from 0. It is useful together with ACCESS_ARGS to parse command line efficiently.
+.It
+.Ev ACCESS_ARGS
+: contains base64 string which encodes all access command line arguments
+.It
+.Ev PATH
+.It
+.Ev ACCESS_PATH
+: both contain the current
+.Va spath
+setting (but see note under this list).
+.It
+.Ev ACCESS_LOCKFILE
+: contains a full path to uid lock file which is held when access is running. If
+.Va nolock
+is applied, then this variable will contain "<unset>" static string.
+.It
+.Ev ACCESS_TTY
+: contains path to invoker tty device. If no tty is associated, this variable will not exist.
+.It
+.Ev ACCESS_CWD
+: contains current working directory which access recognises and uses in it's tests.
+.It
+.Ev ACCESS_CHDIR
+: contains directory into which invoker tries to chdir with
+.Op Fl d
+or
+.Op Fl D
+after target privileges will be in effect. This variable will appear only when invoker told program
+to change target directory with
+.Op Fl d
+or
+.Op Fl D
+options.
+.It
+.Ev ACCESS_USRDIR
+: contains passwd db resolved user directory (usually named
+.Dq home directory
+), to which all the user configuration is written. It resembles contents of
+.Ev HOME
+environment variable in target user environment.
+.It
+.Ev ACCESS_CHROOT
+: contains full path to directory into which invoker wants to chroot. This variable will disappear if invoker is denied to chroot, or if invoker did not specified chroot directory.
+.It
+.Ev ACCESS_USRSHELL
+: contains a passwd db resolved path to shell executable which runs for user on login.
+.Op Fl I
+does not affect it's value.
+.It
+.Ev ACCESS_CONF
+: contains full filesystem path to
+.Nm .
+This string is guaranteed to be static if same access binary is invoked.
+.It
+.Ev ACCESS_LOG
+: if access logs to dedicated logfile, then it will contain full path to that logfile. This usually comes from
+.Va logfile
+setting. If syslog is used instead, then this variable will contain "<syslog>" static string.
+.It
+.Ev ACCESS_VERSION
+: contains access version number in form of single, increasing version number. Because some conventions may vary, a version test and adaptation is encouraged for portable scripts and programs which work as auditors. This string is guaranteed to be static if same access binary is invoked.
+
+.It
+.Ev ACCESS_RSNFD
+: contains an fd to pipe which roots from access master process. An auditor program, when deciding to reject the presented cmdline may write a short reason string of any format, no longer than 256 characters, without ending newline to this fd. access will read it and replace an internal reason string with this one completely, even writing it to logfile or syslog. Note that this only works when access is denied and no password will be asked further via special return codes.
+
+If reason string begins with
+.Dq <hide>:
+prefix, then the final deny message
+.Va denymsg=
+or default builtin one will not be shown. Audit program can signal access this way not to show it's extra messages: audit program may blame user byself, and force access to shutup further.
+
+It is normal not to write anything to this fd, either when audit is successful or not. If program will not write anything to the fd, a default builtin reason will be used instead.
+.El
+
+Note that PATH may differ from ACCESS_PATH here.
+Different PATH for audit program can be specified with
+.Va auditspath .
+
+.Va cmdline
+understands quoted arguments with spaces inside, which are translated as single argument, as well as other basic shell constructs like escaping these quotes and spaces.
+
+This program must return 0 (by default) to permit running of target program, or any other value to deny the action. If logging is enabled, full command line of audit program, it's pid and return value are logged.
+
+Special return values are reserved for audit program. When audit program returns them as a result, and
+.Va auditret
+is not set to them simultaneously, access interprets them specially.
+
+.Bl -bullet -compact
+.It
+.Va 254
+: access sets
+.Va pw
+flag internally when it sees this return value, even if
+.Va nopw
+was previously in effect. Then asks invoker for his own password.
+.It
+.Va 253
+: access sets
+.Va dstpw,pw
+flags internally when it sees this return value, even if
+.Va nopw
+was previously in effect. Then asks invoker for a target user password.
+.It
+.Va 252
+: access sets
+.Va supw,pw
+flags internally when it sees this return value, even if
+.Va nopw
+was previously in effect. Then asks invoker for a superuser password.
+.El
+
+The program is not limited from invoker interaction, but most tty signals are blocked during it's run. access also waits for return value of this program and will never
+.Dq timeout
+or otherwise try to interrupt audit program. Audit program is considered as a access companion: it receives same superuser permissions and protection as access itself.
+
+.It Va auditspath=audit safe path
+This is same as
+.Va spath ,
+but applies safe
+.Ev PATH
+variable to audit and password asking programs only. Without that, they inherit
+.Va spath
+setting, which might be inappropriate if
+.Va spath
+is wide enough to include duplicate programs and scripts.
+
+.It Va auditret=int
+Specifies audit program return value which will be considered as success. Other values will be treated as failure. Default value is 0. Unsetting it will reset the value to default.
+
+.It Va pwask=cmdline
+access can be configured to delegate password asking routine to external program. Such program may display a nice GUI dialog, block the user from interacting with desktop, grab keyboard and mouse and force it to be active only within this dialog etc. Such tasks are not a part of access: access only provides a way to safely ask for password within a user's terminal, which today, unfortunately, is not a default user interface.
+
+The program executed by access runs as superuser, receives the protection same to access program itself at runtime, so it cannot be killed by unprivileged user or tampered with to try to gain access. If you wish no to run a complex code as superuser, you may wrap it into a small shell script which will respawn it again using access itself as other (dedicated) unprivileged user:
+.Bd -literal -offset 8n
+#!/bin/access -C noclose -e PATH=/bin:/sbin -u nobody -- /bin/sh
+exec /sbin/pwaskprogram args ...
+.Ed
+
+access sets these environment variables that are available to password asking program:
+.Bl -bullet -compact
+.It
+.Ev PATH
+: contains a
+.Va spath=
+value, which is overriden by
+.Va %set auditspath=
+one, if it was set previously.
+.It
+.Ev ACCESS_PWDFD
+: this
+.Xr pipe 2
+fd end listens for password which user had typed. The program
+.Sy must
+write the password to this fd when it considers that reading was successful. When password asking program detects an abnormal user behavior (or other, possibly system error), it may write a reason string to this fd instead, describing why reading was unsuccessful. In this case, it must exit with a nonzero status.
+.It
+.Ev ACCESS_PROMPT
+: contains a (parsed)
+.Va prompt=
+string. This value can be used by program to display it to user, so user will understand where this dialog came from and why.
+.It
+.Ev ACCESS_UID
+: contains invoker uid
+.It
+.Ev ACCESS_USER
+: contains invoker resolved user name
+.It
+.Ev ACCESS_GID
+: contains invoker primary gid
+.It
+.Ev ACCESS_GROUP
+: contains invoker resolved primary group name
+.It
+.Ev ACCESS_GIDS
+: contains full list of invoker group ids in numeric form.
+.It
+.Ev ACCESS_GROUPS
+: contains full list of invoker groups (grouplist with resolved names).
+The list members are guaranteed to be in sync with
+.Ev ACCESS_GIDS
+list members, so that each n-th member from gids list matches n-th member from groups one.
+.It
+.Ev ACCESS_D_UID
+: contains target uid
+.It
+.Ev ACCESS_D_EUID
+: contains target effective uid
+.It
+.Ev ACCESS_D_USER
+: contains target resolved user name
+.It
+.Ev ACCESS_D_EUSER
+: contains target resolved effective user name
+.It
+.Ev ACCESS_D_GID
+: contains target primary gid
+.It
+.Ev ACCESS_D_EGID
+: contains target primary effective gid
+.It
+.Ev ACCESS_D_GROUP
+: contains target resolved group name
+.It
+.Ev ACCESS_D_EGROUP
+: contains target resolved effective group name
+.It
+.Ev ACCESS_D_GIDS
+: contains full list of target group ids in numeric form.
+.It
+.Ev ACCESS_D_GROUPS
+: contains full list of target groups (grouplist with resolved names).
+The list members are guaranteed to be in sync with
+.Ev ACCESS_D_GIDS
+list members, so that each n-th member from gids list matches n-th member from groups one.
+.It
+.Ev ACCESS_PWUSR
+: contains a user name for which password hash was retrieved and now it's verified for.
+.It
+.Ev ACCESS_USERENV
+: contains base64 string which encodes all environment variables that invoker passed to us. It's needed only to help GUI programs like
+.Dq pinentry
+family to find out what is their X11
+.Ev DISPLAY
+variable to display their dialog finely. Some other programs may require tty's
+.Ev TERM
+variable to make all the controls interpreted correctly. There maybe others set by user, which are not interpreted by access in any way.
+.El
+
+.Sy IMPORTANT:
+If password asking program does not respond (so it does not write anything to provided pipe fd), or this fd was accidentially closed, then access interprets an empty C string as a password, passing it to internal
+.Xr crypt 3
+wrapper as is. If password hash to be compared is made from an empty C string, then access will be granted. In most situations this will not happen. An empty hash input is not considered as an empty password, so empty passwords are safe to be an always /bin/false style short-circuits within access scope.
+
+Password length must not exceed 256 characters.
+
+Because of protocol style imposed by access, you almost always will need a shell script wrapper to wrap your password asking programs into input expected by access. Depending on design decisions of programs you use it maybe very easy or very hard to implement. Although the protocol used by access is simple and trusted, author had seen password asking programs which are pure mess and should be way more simpler and more Unix oriented, really.
+
+.It Va blamecmd=cmdline
+This cmdline gets executed as superuser when
+.Sy access
+had already decided that invoker has no access.
+
+It is designed only to display a message (possibly as a GUI message box as an example) that access would write into invoker's stdout instead. It cannot cancel the access's decision at this point.
+
+It is supplied with identical set of variables which
+.Va audit=
+program receives plus these environment variables:
+.Bl -bullet -compact
+.It
+.Ev ACCESS_DENYMSG
+: contains parsed denymsg string, which the program should display to invoker.
+.El
+
+.Sh DEFINING ENVIRONMENT VARIABLES
+.Sy access
+allows user to set their own environment variables with
+.Op Fl e
+option, but only if this option was allowed to use with
+.Dq %set opt_e
+or in individual matching rule flags.
+To control user's intentions in a reasonable limits, access gives an ability to set, unset or alter environment variables explicitly from configuration file. access also carries a predefined lists of
+.Em trusted
+and
+.Em banned
+environment variables: those which may and must never (respectively) appear in a invoker environment. access does not punish for their presence, it just removes them (sanitises source environ) before a target program will get the control.
+
+.Dq %setenv
+accepts a
+.Em single
+environment variable. The syntax is:
+.Dq %setenv NAME=VALUE ,
+where
+.Em NAME
+is a environment variable name, and
+.Em VALUE
+is it's value which may contain any characters you wish, including space.
+.Em VALUE
+may also include format templates and user defined variables. Please see
+.Sx FORMAT TEMPLATES
+and
+.Sx USER VARIABLES
+sections for detailed explanations.
+
+The variable will be in effect until it will be explicitly removed by
+.Dq %unsetenv .
+.Em User cannot remove such variable manually with
+.Op Fl e .
+
+.Dq %unsetenv
+accepts a name of environment variable to remove. The syntax is:
+.Dq %unsetenv SPEC ,
+where
+.Em SPEC
+is a name of environment variable, or
+.Xr fnmatch 3
+pattern.
+It will unset (remove) any previously defined environment variables with
+.Dq %setenv ,
+and any matching environment variable found in invoker's environ.
+
+.Dq %delenv
+accepts a name of previously defined environment variable with
+.Dq %setenv .
+It does not remove any really existing environment variables from source environment. The syntax is:
+.Dq %delenv SPEC ,
+where
+.Em SPEC
+is a name of environment variable, or
+.Xr fnmatch 3
+pattern.
+
+.Dq %keepenv
+defines a new environment variable which, if found in invoker's environ, will be
+preserved across the borders and set inside target environ. The syntax is:
+.Dq %keepenv NAME .
+
+.Dq %unbanenv
+unbans a banned environment variable, or pattern. As it was said before, access carries an embedded list of
+.Sq bad ,
+.Sq evil ,
+.Sq scary ,
+.Sq banned
+environment variables which should never appear inside a controlled environ after sanitisation. access however gives a right to unban such variables manually in case when it's really needed. The syntax is:
+.Dq %unbanenv NAME ,
+where NAME may accept any banned variable or pattern listed in
+.Dq access -VV
+command output.
+
+.Dq %unkeepenv
+is similar to
+.Dq %unbanenv ,
+but disables a trusted variable inside access's embedded trusted environment variables list (which are always kept and transferred across border). The syntax is:
+.Dq %unkeepenv NAME .
+
+.Sh VIRTUAL USERS SECTION
+It follows after
+.Sx DEFAULTS SECTION
+and each line in this section is started by
+.Dq %user
+keyword.
+
+There are two versions of input arguments for
+.Dq %user
+specificator: old syntax with format of simple
+.Dq name $U$salt$hash ,
+and new syntax, which format is
+.Dq name:$U$salt$hash:uid:gid:udir:shell .
+
+Old format just replaces
+.Em name
+\'s password hash with given value.
+
+New format defines completely new virtual user or redefines an existing one: new password hash, uid, gid, user directory and shell are initialized from the given values and used across the whole runtime of access.
+
+For example, if in
+.Pa /etc/passwd ,
+there is a line:
+.Bd -literal -offset 8n
+test:x:9999:9999:test user:/tmp:/bin/sh
+.Ed
+
+, and
+.Xr id 1
+shows this about
+.Em test
+user:
+.Bd -literal -offset 8n
+% id test
+uid=9999(test) gid=9999(test) groups=9999(test)
+%
+.Ed
+
+, then, with this line in effect:
+.Bd -literal -offset 8n
+%user test:$U$salt$hash:1991:1886:/u/test:/bin/ksh
+.Ed
+
+, and you will be permitted to run programs as
+.Em test ,
+you will see this (assuming
+.Va nopw
+is set):
+.Bd -literal -offset 8n
+% id test
+uid=9999(test) gid=9999(test) groups=9999(test)
+% access -u test id
+uid=1991 gid=1886 groups=1886
+%
+.Ed
+
+This password, once set, virtually
+.Dq replaces
+any passwords provided by system, so new redefined password is always in high priority when resolving uid/user data, with both old and new syntax.
+
+.Sh RULES SECTION
+Rules section does not have a dedicated keyword for each rule. Instead, each rule is given within the following format:
+.Bd -literal
+[srcusr]:[srcgrp]:[srcgrps] [dstusr[,dsteusr]]:[dstgrp[,dstegrp]]:[dstgrps] flags cmdline ...
+.Ed
+
+.Ss srcusr part
+srcusr part describes invoker identity to match with. Arbitrary names and numbers are accepted, except " " (space), "*" and ":" characters.
+
+.Bl -bullet -compact
+.It
+.Va srcusr
+: describe user name or uid
+.It
+.Va srcgrp
+: describe primary group or gid
+.It
+.Va srcgrps
+: describe a comma separated grouplist (both group names and gids).
+
+srcgrps also accepts such modifiers:
+"+" and "-" - prefixed group names or gids
+.Em without
+specifying complete grouplist specify that
+.Em at least
+these groups must be included (+) or excluded (-) from grouplist of invoker to pass the test.
+.El
+
+If no
+.Va srcgrp
+or
+.Va srcgrps
+are specified, then this means that they do not matter, and
+.Va srcusr
+can have any groups to pass this test successfully.
+The same will be if just no
+.Va srcgrps
+list is specified, then only
+.Va srcusr
+and
+.Va srcgrp
+are tested.
+
+If you want strict tests, then you should specify all three parameters to test.
+
+.Ss dstusr part
+dstusr part describes target user permissions invoker wants to obtain. Arbitrary names and numbers are accepted, except " " (space), "*" and ":" characters.
+
+.Bl -bullet -compact
+.It
+.Va dstusr
+: describe user name or uid for use with
+.Op Fl u
+.It
+.Va dsteusr
+: describe effective user name or uid for use with
+.Op Fl U
+.It
+.Va dstgrp
+: describe primary group or gid for use with
+.Op Fl g
+.It
+.Va dstegrp
+: describe effective primary group or gid for use with
+.Op Fl G
+.It
+.Va dstgrps
+: describe a comma separated grouplist (both group names and gids) for use with
+.Op Fl s
+
+Any of
+.Va dstusr ,
+.Va dsteusr ,
+.Va dstgrp ,
+.Va dstegrp
+accept the
+.Dq <sameusr>
+modifier which is replaced with the appropriate
+.Va srcusr ,
+or
+.Va srcgrp .
+
+dstgrps also accepts such modifiers:
+"+" and "-" - prefixed group names or gids
+.Em without
+specifying complete grouplist specify that these groups
+.Em should be
+added (+) or removed (-) from
+.Em default resolved
+grouplist of target user.
+.Op Fl S
+must be used together with this specification instead of
+.Op Fl s .
+.El
+
+If no
+.Va dsteusr
+or
+.Va dstegrp
+are specified, then they default to
+.Va dstusr
+and
+.Va dstgrp ,
+respectively.
+
+If no
+.Va dstgrp
+or
+.Va dstgrps
+are specified, then
+.Em default values
+are tested which are resolved from passwd database, for
+.Va dstusr .
+Resolving errors, if any, are reported early.
+
+Any user or group names are optional. Each user or group can be replaced by asterisk "*", meaning
+.Dq any user or group .
+
+Whole part can be replaced just with "*", ":" or "::" signs, meaning
+.Dq anyone .
+
+.Ss flags part
+.Em flags
+part specifies the same flag names as described in
+.Sx DEFAULTS SECTION .
+The syntax for
+.Em flags
+is same as given in
+.Sx DEFAULTS SECTION
+with exception that flags of two different types
+.Dq flag,flag,...
+and
+.Dq flag=value
+can be specified on same line, thus, mixed:
+.Dq flag,flag=value,flag,...
+
+.Em All flags
+except of:
+.Sy nocommands ,
+.Sy spath ,
+.Sy supath ,
+.Sy delay ,
+.Sy logfile ,
+.Sy prompt ,
+.Sy denymsg ,
+.Sy minfd ,
+.Sy maxfd ,
+.Sy loguts ,
+.Sy tf ,
+.Sy lockpath ,
+.Sy root ,
+.Sy dir ,
+.Sy blame ,
+.Sy audit ,
+.Sy auditret ,
+.Sy regex ,
+.Sy fnmatch
+can be specified there.
+
+Note that flags accepting parameter after '=' cannot contain spaces. That's what
+.Dq %set
+is for!
+
+Flags part is required. If no flags desired, one must place a
+.Sq pw
+there.
+
+.Em flags
+can accept arbitrary
+.Em flag
+or
+.Em flag=value
+strings. Flags that are not recognised by access are not dropped or errored out. If audit program is
+used (see below),
+.Em flags
+are passed to audit program in a dedicated trusted environment variable.
+System administrator can select only certain rules by applying custom flags to them, then parsing
+them inside audit program which is a separate process started by access.
+
+.Ss cmdline part
+.Em cmdline ...
+specifies a
+.Em full path to binary
+with it's full command line arguments, if any, separated by spaces.
+
+Binary must reside in one of directories permitted for use with
+.Va spath
+default setting.
+Wildcards (*) and any matching rules which
+.Xr fnmatch 3
+understand are accepted.
+Quotes (") are accepted, and any command line argument containing space character(s), enclosed within quotes is accepted as single argument, and space character within is ignored.
+
+The following modifiers are accepted:
+.Bl -tag -width indent
+.It Va <all>
+: means
+.Dq any command line .
+Permits running everything.
+.El
+
+cmdline part is
+.Em mandatory .
+If omitted, rule line is considered
+.Em invalid.
+
+Within rules, you can change access internal settings with
+.Dq %set
+or
+.Dq %unset
+keywords. These keywords can be specified anywhere within
+.Sx RULES SECTION .
+They were made such so they can
+.Dq wrap around
+certain rule(s) and apply settings locally only to them.
+
+The following format is accepted:
+.Bd -literal -offset 8n
+%set var=value
+%set var=value containing spaces
+%unset var
+.Ed
+
+Once
+.Dq %set
+is applied, and rule(s) requiring it is processed, the variable can be deleted with
+.Dq %unset ,
+so it will not be applied to rules parsed further.
+
+.Dq %set
+.Em does not set
+arbitrary variables! It controls only internal variables which access recognise.
+
+The following
+.Dq %set
+variables are recognised:
+.Bl -tag -width indent
+
+.Sh FORMAT TEMPLATES
+access supports format templates: special strings which are replaced by things such as invoker or destination user credentials, or internal state of access.
+
+It is an extension to simple printf substitutions which were present in
+.Va prompt=
+and
+.Dq %setenv
+and somewhere else long time before.
+
+Format templates currently only supported in variables listed above, plus
+.Va denymsg= .
+
+These templates are supported:
+
+.Bl -bullet -compact
+.It
+.Va %{dstuid}
+Replaced with real uid of destination user,
+
+.It
+.Va %{dstusr}
+Replaced with real (resolved) name of destination user, or with uid if not resolved,
+
+.It
+.Va %{dsteuid}
+Replaced with effective uid of destination user,
+
+.It
+.Va %{dsteusr}
+Replaced with effective (resolved) name of destination user, or with effective uid if not resolved,
+
+.It
+.Va %{dstgid}
+Replaced with real primary gid of destination user,
+
+.It
+.Va %{dstgrp}
+Replaced with real (resolved) name of destination user gid, or with gid if not resolved,
+
+.It
+.Va %{dstegid}
+Replaced with effective primary gid,
+
+.It
+.Va %{dstegrp}
+Replaced with resolved name for effective gid, or with gid if not resolved,
+
+.It
+.Va %{dstgids}
+Replaced with numeric grouplist of destination user,
+
+.It
+.Va %{dstgrps}
+Replaced with resolved grouplist of destination user. It is guaranteed that each member from this list matches each member from
+.Va %{dstgids}
+numeric grouplist.,
+
+.It
+.Va %{srcuid}
+Replaced with real uid of invoker,
+
+.It
+.Va %{srcusr}
+Replaced with real (resolved) name of invoker,
+
+.It
+.Va %{srcgid}
+Replaced with real primary gid of invoker,
+
+.It
+.Va %{srcgrp}
+Replaced with real (resolved) name of primary gid of invoker,
+
+.It
+.Va %{srcgids}
+Replaced with numeric grouplist of invoker,
+
+.It
+.Va %{srcgrps}
+Replaced with resolved grouplist of invoker. It is guaranteed that each member from this list matches each member from
+.Va %{srcgids}
+numeric grouplist.,
+
+.It
+.Va %{dstdir}
+Replaced with destination directory into which the target program will be placed.
+Does not include prepended chroot directory.
+
+.It
+.Va %{tty}
+Replaced with current tty path as returned by
+.Xr ttyname 8
+
+.It
+.Va %{cwd}
+Replaced with current working directory path,
+
+.It
+.Va %{rootdir}
+Replaced with chroot directory as seen by
+.Op Fl R
+cmdline option (if chroot was permitted),
+
+.It
+.Va %{spath}
+Replaced with
+.Va spath
+default setting,
+
+.It
+.Va %{execpath}
+Replaced with full resolved executable path. If no executable can be found, this format template is replaced with empty string.
+
+.It
+.Va %{cmdline}
+Replaced with cmdline which invoker tries to run.
+
+.It
+.Va %{firstarg}
+Replaced with what's access thinks is
+.Va argv[0]
+of target program. The name is clumsy, but it is. If no modifying options
+.Op Fl aAlI
+are in effect, then result is empty string.
+
+.It
+.Va %{bfullargv}
+Replaced with full escaped cmdline of the program, including arguments to access itself.
+
+.It
+.Va %{bcmdline}
+Replaced with base64 version of
+.Va %{cmdline}
+above.
+
+.It
+.Va %{buserenv}
+Replaced with base64 string which contains all invoker environment strings, NUL separated.
+
+.It
+.Va %{benviron}
+Replaced with base64 string which contains new target environment which was formed by program.
+
+.It
+.Va %{auditcmd}
+Replaced with audit cmdline string (not the parsed one), as it is set in config file.
+
+.It
+.Va %{pwaskcmd}
+Replaced with password asking cmdline string, as it is set in config file.
+
+.It
+.Va %{auditpid}
+Replaced with pid of audit program. If it was running, then real pid is placed. Otherwise result is
+.Sq 0 .
+
+.It
+.Va %{auditret}
+Replaced with return value from audit program. If audit program was running, then any value can be there as it was returned by audit program. Otherwise result is
+.Sq 0 .
+
+.It
+.Va %{hashbang}
+Replaced with hashbang value, if access was invoked from script header. If no hashbang is set, this format template is replaced with empty string.
+
+.It
+.Va %{line}
+Replaced with full invoked access rule string.
+
+.It
+.Va %{flags}
+Replaced with flags part of invoked access rule string.
+.It
+.Va %{pid}
+Replaced with access pid value,
+
+.It
+.Va %{ppid}
+Replaced with parent pid of access,
+
+.It
+.Va %{dstusrdir}
+Replaced with user's default directory (or
+.Dq home directory
+), resolved from passwd db.
+
+.It
+.Va %{dstusrshell}
+Replaced with path to a shell executable which is run for user on his login.
+
+.It
+.Va %{datetime}
+Replaced with date and time string which format is
+.Xr date 1
+default format.
+
+.It
+.Va %{timestamp}
+Replaced with number of seconds since beginning of Unix Epoch.
+
+.It
+.Va %{progname}
+Replaced with access NAME define, that is: "access" (without quotes),
+
+.It
+.Va %{dispname}
+Replaced with current display program name, as if found in
+.Va argv[0] .
+
+.It
+.Va %{version}
+Replaced with access version number, defined at compile time.
+.El
+
+.Va prompt=
+specific (both native password asking and
+.Op Fl c testauth
+password asking modes):
+
+.Bl -bullet -compact
+.It
+.Va %{pwusr}
+Replaced with real (resolved) name of user for whom access asks for password. This value depends on
+.Va dstpw
+or
+.Va supw
+flags.
+When rule's line password is set with
+.Va pw=
+flag, there is no change in user name; only above specified flags are controlling this variable.
+.El
+
+.Va denymsg=
+specific:
+
+.Bl -bullet -compact
+.It
+.Va %{reason}
+Shows internal deny reason string which is going to be logged. Only plain reason string is displayed, not the whole log line item.
+.El
+
+As an example, here is how you define
+.Va prompt=
+with format templates:
+.Bd -literal -offset 8n
+%def prompt=Welcome %{srcusr}, please input password for %{dstusr}:
+.Ed
+
+, which then results in something like this at runtime:
+.Bd -literal -offset 8n
+% access id
+Welcome test, please input password for root:
+.Ed
+
+Other defaults and variables may gain these or other setting-specific format templates in future versions of access.
+
+Template names are closely related or resemble terms used inside access program, and their names may differ from the terms used in this documentation.
+
+.Sh USER VARIABLES
+The
+.Dq %set
+also accepts any other variable name specified in any reasonable form, and defines a format template for it. Thus, if one will set a variable like this:
+.Bd -literal -offset 8n
+%set my_shared_dir=/data/shared/bin
+%set my_spath=/local/xbin:%{spath}:.:%{my_shared_dir}
+%setenv PATH=%{my_spath}:/mnt/bin
+.Ed
+
+, then this all will expand a
+.Ev PATH
+variable into:
+.Bd -literal -offset 8n
+/local/xbin:/bin:/sbin:/usr/bin:/usr/sbin:.:/data/shared/bin:/mnt/bin
+.Ed
+
+(here it is an example, all paths and variable names are just to show how mechanism will work)
+
+User variables accept other user variable templates in their values (the rest of string after
+.Sq =
+), as well as predefined
+.Sy access
+format templates listed in
+.Sx FORMAT TEMPLATES
+section.
+
+If user variable cannot be found, then, as with predefined format templates it's value is not resolved and it is left as is without deletion from parsed value.
+
+As with any other variable type, user variables can be deleted (unset) when not needed. Use usual
+.Dq %unset
+operator over them. Unsetting affects any future references to this variable: they're not resolved and left as is.
+
+Rule's cmdline part also accepts user variables and builtins in form of format templates. Format template can appear in any part of cmdline part specification of rule. But remember that any unparsed (not found) variables left as is, and are not removed!
+
+.Sy WARNING!
+.Em Recursive variables behavior is undefined!
+There is no defined behavior for a construct like this:
+.Bd -literal -offset 8n
+%set my_spath=%{my_spath}
+.Ed
+
+or anything like that (when variable contains reference to itself). You of course free to do that, but never ask the author about how to recover from the accident.
+.Em You have been warned.
+
+.Sh REGULAR EXPRESSIONS
+If enabled during compilation,
+.Sy access
+supports defining regular expressions rules to allow very flexible and accurate rule matching. Regular expressions also understood in some other places which also accept fnmatch patterns. Note that environment variable names and grouplists inside rule specifications do not accept regexps.
+
+.Sy access
+uses
+.Em POSIX Extended regular expressions
+engine, provided by host OS/libc implementation.
+It does not support Perl extensions, and probably never will (however it fully depends on your host implementation), so things like
+.Sq (?!string)
+will never work.
+
+Enabling regexps is easy: for a set of rules to be used within, just set
+.Sq regex
+setting to
+.Sq yes :
+.Dq %set regex=yes .
+Now all rules' patterns after the line will be parsed with regex engine instead of fnmatch. Write your rules, verify them with embedded
+.Sy smatch
+tool.
+
+Few notes about regex security. First, any regular expression parsed is
+.Em automatically wrapped into ^$ frame ,
+so it is not possible to attack an
+.Sq incomplete
+regexp specification like
+.Sq /bin/id(| )(|-u)$
+with cmdline string like
+.Sq /home/user/bin/id -u
+(note trailing
+.Sq /home/user ,
+which permits running other version of executable not restricted by spath)
+Second, regexps are very flexible and powerful, but this
+.Em greatly increases error possibility ,
+so they're not the default matching engine in access. Especially regexps for superuser rules.
+fnmatch is very flexible and it was enough for more than three years. Regexps are the only way however to optimize multiple rules with nearly same content.
+
+In case if regex support is not compiled in, rules containing them simply not parsed as needed and not successfully matched (because fnmatch can't consume them), and simply ignored. Any regex related settings are also ignored.
+
+.Sh EXAMPLES
+The following real world usage example is made from more than one year of using access on a typical desktop machine:
+.Bd -literal -offset 8n
+# This file is from /etc/access.conf
+# on my working machine, sensitive things are edited out.
+#
+# It is recommended to use "--" in each command which
+# accepts multiple sensitive options, to restrict usage just only
+# to one or some of them.
+
+%set spath=/bin:/sbin:/local/bin:/local/sbin
+%set delay=200000
+%set tty
+%set nolock
+%set opt_d
+%set opt_D
+# next provides each program an information about
+# that it was run through access.
+%setenv LD_NORPATH=1
+%setenv _ACCESS_AUTH=1
+
+# deny any access to /dev/sda.
+* * false,nopw,nolog,nologfail *sda*
+
+### superuser ###
+lynx root nopw,nolog /bin/dmesg
+lynx root nopw,nolog /bin/sh -c "dmesg | tail -n5"
+lynx root nopw,nolog /bin/ps *
+lynx root nopw,nolog /bin/ss *
+lynx root nopw,nolog /bin/ping *
+lynx root nopw,nolog /bin/traceroute *
+lynx root nopw,nolog /bin/ping6 *
+lynx root nopw,nolog /bin/traceroute6 *
+lynx root nopw,nolog /bin/lsof *
+lynx root nopw,nolog /sbin/iptables -vnL *
+lynx root nopw,nolog /sbin/ip6tables -vnL *
+lynx root nopw,nolog /sbin/iftop *
+
+lynx root nopw,warnusr /bin/ip *
+
+# suspend
+lynx root nopw,notty,nolog /sbin/suspend
+
+# start/stop/restart X11
+lynx root nopw,notty,nolog /etc/init/rc.X11 *
+
+## setuid things ##
+
+# watch traffic with wireshark
+lynx <same>,root nopw,notty,nolog /bin/execvp /local/bin/dumpcap.real dumpcap *
+# watch traffic with tcpdump
+lynx root nopw,notty /sbin/tcpdump *
+
+# vlock
+lynx <same>,root nopw,notty,nolog /bin/execvp /bin/busybox vlock
+
+# slock does logging, but it is forbidden to syslog without log group
+lynx lynx:lynx:log,wheel nopw,notty,nolog /bin/execvp /local/bin/slock.real slock
+
+## vfs operations ##
+
+# here is where /dev/sda is not permitted to appear, but
+# others are easily specified
+#
+# the stuff about /dev/sd* is for work with removable devices,
+# because the system where this access is installed has busybox
+# installed as a regular, not setuid executable, for security reasons.
+
+lynx root nopw /bin/chattr [+-]i -- *
+lynx root nopw,nolog /bin/mount /dev/sd* /mnt
+lynx root nopw,nolog /bin/mount * /dev/sd* /mnt
+lynx root nopw,nolog /bin/mount /dev/sr* /mnt
+lynx root nopw,nolog /bin/mount * /dev/sr* /mnt
+lynx root nopw,nolog /bin/mount /dev/loop* /mnt
+lynx root nopw,nolog /bin/mount * /dev/loop* /mnt
+lynx root nopw,nolog /bin/mount *remount* /mnt
+lynx root nopw,nolog /bin/umount /mnt
+lynx root nopw,nolog /sbin/hdparm -qz /dev/sd*
+lynx root nopw,nolog /sbin/fdisk -lu /dev/sd*
+lynx root nopw,nolog /bin/chgrp lynx /dev/sd*
+lynx root nopw,nolog /bin/chgrp disk /dev/sd*
+lynx root nopw,nolog /bin/chgrp lynx /dev/sr*
+lynx root nopw,nolog /bin/chgrp disk /dev/sr*
+lynx root nopw,nolog /bin/chgrp lynx /dev/loop*
+lynx root nopw,nolog /bin/chgrp disk /dev/loop*
+lynx root nopw,nolog /local/bin/setfacl * /dev/sd*
+lynx root nopw,nolog /local/bin/setfacl * /dev/sr*
+lynx root nopw,nolog /local/bin/setfacl * /dev/loop*
+lynx root nopw,nolog /bin/file -s /dev/sd*
+lynx root nopw,nolog /bin/file -s /dev/sr*
+lynx root nopw,nolog /bin/file -s /dev/loop*
+lynx root nopw,nolog /bin/file -sL /dev/loop*
+lynx root nopw,nolog /local/sbin/smartctl * /dev/sd*
+# setup loop mounts
+lynx root nopw /sbin/losetup *
+# mark block device as readonly - and no way back
+lynx root nopw,nolog /sbin/blockdev --setro /dev/sd*
+# record and erase CD/DVD - yes, even cdrecord is not setuid.
+lynx root nopw,notty /local/sbin/cdrecord -dev=3,0,0 *
+
+# poweroff/reboot must warn me
+lynx root nopw,nolog,warnusr /sbin/dreboot *
+lynx root nopw,nolog,warnusr /sbin/dpoweroff *
+lynx root nopw,nolog,warnusr /sbin/reboot *
+lynx root nopw,nolog,warnusr /sbin/poweroff *
+### superuser ###
+
+### lynx ###
+## playing with chroots
+# /data/tmp/R must exist and owned by root...
+%set root=/mnt
+lynx lynx:lynx:lynx nopw,notty,opt_R <all>
+lynx test:test:test nopw,notty,opt_R <all>
+%set root=/data/tmp/R
+lynx lynx:lynx:lynx nopw,notty,opt_R <all>
+lynx test:test:test nopw,notty,opt_R <all>
+%unset root
+
+## gaining special group access ##
+
+## cdrom
+lynx lynx:lynx:cdrom nopw,nolog <all>
+lynx lynx:lynx:+cdrom nopw,nolog <all>
+
+## floppy
+lynx lynx:lynx:floppy nopw,nolog <all>
+lynx lynx:lynx:+floppy nopw,nolog <all>
+
+## dialout
+lynx lynx:lynx:dialout nopw,nolog <all>
+lynx lynx:lynx:+dialout nopw,nolog <all>
+
+## net - not with full privileges
+lynx lynx:lynx:net nopw,nolog,warnusr <all>
+
+## kvm
+lynx lynx:lynx:kvm nopw,notty,nolog <all>
+lynx lynx:lynx:kvm,vnet nopw,notty,nolog <all>
+
+## tinc
+lynx lynx:lynx:tinc nopw,notty,nolog <all>
+
+## loopback access
+lynx lynx nopw,nolog,userenv,opt_e <all>
+lynx lynx:lynx:lynx nopw,nolog,userenv,opt_e <all>
+### lynx ###
+
+### other users lynx has access to ###
+lynx test nopw,notty,nolog <all>
+lynx test:test:audio nopw,notty,nolog <all>
+lynx test:test:video nopw,notty,nolog <all>
+lynx test:test:audio,video nopw,notty,nolog <all>
+lynx inet nopw,notty,nolog <all>
+lynx mail nopw,notty,nolog <all>
+lynx etech nopw,notty,nolog <all>
+### other users lynx has access to ###
+
+### users to other users ###
+inet inet nopw,notty,nolog /local/firefox/firefox *
+psi inet nopw,notty,nolog /local/firefox/firefox *
+mail inet nopw,notty,nolog /local/firefox/firefox *
+### users to other users ###
+
+# by default, only lynx:lynx with group wheel has full access
+# to his own system, but first verified with his own password,
+# and his actions with this rule are always logged.
+lynx:lynx:+wheel * pw,notty,opt_L <all>
+.Ed
+
+.Sh SEE ALSO
+.Xr access 8

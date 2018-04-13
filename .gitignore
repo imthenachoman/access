@@ -1,0 +1,9 @@
+_*
+*.o
+*.swp
+*.patch
+*.diff
+*.asc
+*.txt
+tags
+access

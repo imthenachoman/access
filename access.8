@@ -1,0 +1,758 @@
+.Dd 13Apr2018
+.Dt ACCESS 8
+
+.Sh NAME
+.Nm access
+.Nd authenticator for Unix systems
+
+.Sh SYNOPSIS
+.Nm
+.Op Fl uU Ar user/uid
+.Op Fl gG Ar group/gid
+.Op Fl sS Ar grouplist
+.Op Fl tTxX
+.Op Fl e Ar VAR=VAL ...
+.Op Fl a Ar argv[0]
+.Op Fl c Ar cmd,cmd,...
+.Op Fl C Ar minfd
+.Op Fl d Ar chdir
+.Op Fl F Ar fd
+.Op Fl L Ar rlimspec
+.Op Fl Q Ar prio
+.Op Fl R Ar newroot
+.Op Fl AbBDEfIlnNpPvVwy
+.Op Ic --
+.Ic cmdline ...
+
+.Sh DESCRIPTION
+.Nm ,
+a powerful Unix authentication and privilege separation tool and setuid proxy.
+.Nm
+replaces tools such as
+.Xr su 1 ,
+and
+.Xr sudo 8 ,
+in their roles of being an authentication agents for temporary changing user credentials, starting
+new privileged processes and setting programs environment variables, resource limits and file tree roots.
+
+.Nm
+basic role is to give privileged users access to other user accounts, but it can also run programs with different credentials, permit changing almost of every security and resource token of a newly created processes, authenticate using external programs and extend hashbang functionality by substituting privileged programs with shell script wrappers.
+
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl u Ar uid/user
+Set uid to specified user or uid
+.It Fl U Ar uid/user
+Set euid to specified user or uid
+.It Fl g Ar gid/group
+Set gid to specified group or gid
+.It Fl G Ar gid/group
+Set egid to specified group or gid
+.It Fl s Ar grouplist
+Set additional groups to specified
+.Em grouplist.
+A grouplist is a enumeration of single groups or gids delimited by comma
+.It Fl S Ar grouplist
+Set additional groups to specified
+.Em grouplist.
+A grouplist is an extension to
+.Op Fl s
+in a manner that it accepts a prefix '+' or '-' to each individual group or gid.
+Such a prefix indicates then an addition or removing a specified group is performed from an already resolved
+.Em default user grouplist.
+If no
+.Op Fl u
+was specified to indicate for which user a default grouplist needs to be obtained, a
+.Em default uid and user
+(usually superuser) is assumed to be.
+Note that neither one of
+.Op Fl gGU
+options specify a user for which grouplist is obtained before modification (but affect
+.Em primary group
+which is usually placed first in this list).
+.It Fl t
+Like
+.Op Fl U Ar 0
+or
+.Op Fl U Ar root
+, sets
+.Em euid
+to superuser.
+This is
+.Em portable
+way of running seteuid scripts for use in hashbang header or any other portable scripts or programs.
+Because
+.Dq root
+is a conventional, but not guaranteed to be exact same, name for a superuser account, and usage of
+.Op Fl U Ar 0
+can be denied by configuration,
+.Nm
+provides a portable command line argument to explicitly request setuid behavior for a target program.
+.It Fl T
+Like
+.Op Fl G Ar 0
+or
+.Op Fl G Ar root
+, sets
+.Em egid
+to superuser.
+Like with
+.Op Fl t
+, this is required for portable programs and scripts which request setgid operation.
+.It Fl x
+Do not specify invoker credentials with multiple
+.Op Fl ugsS
+options, instead, request
+.Nm
+to copy invoker's credentials to target program credentials.
+Multiple
+.Op Fl x
+will force
+.Nm
+to preserve invoker's
+.Em grouplist
+instead of resolving it.
+.It Fl X
+Do not specify invoker credentials with multiple
+.Op Fl ugsS
+options, instead, request
+.Nm
+to copy invoker's credentials to target program credentials.
+When copying it's assumed that invoker
+.Em grouplist
+is not resolved, instead, only a single invoker primary gid is copied into target grouplist.
+.It Fl a Ar argv[0]
+Sets target program argv[0] (zeroeth argument, program display name) to provided one.
+This operation requires special access and by default is restricted.
+Please see
+.Xr access.conf 5
+for a list of definitions associated with restricted command line arguments.
+.It Fl A
+Place a dash '-' in beginning of argv[0] of target program.
+This is sometimes required to tell some login programs and shells that they should act as a login shell.
+This operation requires special access and by default is restricted.
+.It Fl b
+When running a program, detach it from any of terminals, close all interactive file descriptors, allocate a new process group and put to background. Errors reported by target program will not visible, and return value is ignored.
+.Nm
+will return immediately, no matter of time for a target program to run.
+.It Fl B
+Detach terminal reference from a target program. Useful to prevent tty hijacking.
+.It Fl c Ar cmd,cmd,...
+Execute
+.Em virtual
+command. cmd is one of:
+.Sy id
+.Sy uid
+.Sy gid
+.Sy gids
+.Sy user
+.Sy group
+.Sy groups
+.Sy suser
+.Sy udir
+.Sy shell
+.Sy mkpwd
+.Sy testauth.
+
+.Sy id
+reports
+.Xr id 1
+like line,
+.Sy udir
+reports user directory,
+.Sy shell
+reports user shell and
+.Sy suser
+reports superuser name.
+.Sy mkpwd
+generates password hash portably. By default it tries to use Skein engine, which may be not available. In such case, mkpwd will generate DES hash. If you need to override salt for mkpwd, specify it as a single argument in form of
+.Sy mkpwd=salt.
+
+.Sy testauth
+asks for password of current user (or other user specified with
+.Op Fl u name )
+, then verifies it with a password database and exits with status. Shell return value of 0 means that password is correct, 1 means that password is invalid. Any other value will signal about error.
+
+.Sy testauth
+also supports single argument in form of
+.Sy testauth=hash ,
+where
+.Va hash
+explicitly overrides any password database lookups and uses
+.Va hash
+when matching input password. Note that if you did specified user with
+.Op Fl u name ,
+it will not have any effect on specified hash, but this user name or uid may appear as a part of parsed prompt string which is set with
+.Va prompt=
+default setting in your access.conf file.
+
+.Sy testauth
+prompt string can be overriden by setting a
+.Ev ACCESS_TESTAUTH_PROMPT
+variable to string which will be displayed.
+
+Others report a single or comma or white space separated lists of values. They are self explanationary.
+
+Note that
+.Sy mkpwd
+and
+.Sy testauth
+will require superuser privileges to be executed successfully. Both also erase their optional argument passed after '=' sign, so these commands can be safely executed from auditor for example.
+
+By default, reporting commands will use invoker credentials to be analyzed and reported, but using any of
+.Op Fl uUgGsStTxX
+options can change reported information, so one can request other user (public) credentials information.
+.It Fl C Ar minfd
+Raise minimum
+.Dq close all
+file descriptor limit to
+.Em minfd.
+If minfd is specified as
+.Dq noclose
+and invoker is superuser, then
+.Em no secure close of unused fds is performed at all, passing all the opened fds to target environment unmodified!
+This operation requires special access and by default is restricted.
+.It Fl d Ar chdir
+Change working directory just before running of target program.
+If directory cannot be accessed by target user,
+.Nm
+will change it to
+.Dq /
+If changing to
+.Dq /
+is further impossible,
+.Nm
+will leave current working directory untouched.
+.It Fl D
+Resolve target user directory (usually named
+.Dq home directory
+, often referenced by
+.Ev HOME
+environment variable), and change to resolved directory just before running of target program.
+If it was not possible to resolve target user directory, or it cannot be accessed by target user,
+.Nm
+will change it to
+.Dq /
+If changing to
+.Dq /
+is further impossible,
+.Nm
+will leave current working directory untouched.
+.It Fl e Ar VAR=VAL
+Set environment variables in target program's environment.
+This option can be given multiple times, and
+.Nm
+will remember all given variables.
+However this option is a subject to high security filtering: not all environment variables can appear in target program environment. Variables such as
+.Ev PATH
+and many many other existing in today systems and associated with dynamic loaders, shell interpreters and networking libraries could not be set with this option.
+.Em superuser
+however can override any of them, and if permitted, invoker can too, with programs like
+.Xr env 1
+or with shell.
+This operation requires special access and by default is restricted.
+.It Fl E
+Run target program with almost empty environment.
+.Nm
+will clear environment, and depending on configuration, will set additional sensitive environment variables such as
+.Ev PATH,
+.Ev HOME,
+.Ev SHELL,
+.Ev USER,
+.Ev LOGNAME,
+and
+.Ev UID
+as well as some others if configured.
+.Nm
+also maintains a list of environment variables that must be preserved across borders if present in invoker's environment, namely
+.Ev TERM
+and
+.Ev DISPLAY.
+So requesting
+.Em complete
+empty environ with
+.Op Fl E
+is not enough to get a running program with empty environment.
+Superuser, when running with this option, will
+.Em not
+get such a program too, because of configuration. At least
+.Ev PATH
+will be
+.Em always
+set.
+.It Fl f
+Ask
+.Nm
+not to read and parse configuration file.
+
+This command line option can be invoked
+.Em only
+by superuser, and it's not for a public usage.
+.It Fl F Ar fd
+Request password input at completely separate and dedicated listen
+.Em fd
+allocated before password entry.
+With this option, a cleartext
+.Em exact
+password without special characters like newline or other control characters must be provided.
+If password is not needed by configuration, this option is ignored.
+.It Fl l
+Do not run mandatory
+.Ic cmdline
+but instead start a login shell.
+When starting a login shell it's assumed that target user shell is resolved,
+.Op Fl AE
+options are implied.
+.It Fl I
+Do not run mandatory
+.Ic cmdline
+but instead start a login shell.
+When starting a login shell it's assumed that a
+.Em /bin/sh
+shell is started (overriding default user shell),
+.Op Fl AE
+options are implied.
+.It Fl L Ar rlimspec
+Set resource limits for a target program.
+rlimspec is specified as a
+.Dq nrlim:soft:hard
+string where nrlim can be a number, character or symbolic define name from a header file, of a resource limit specificator.
+If specified as a character, an
+.Xr ulimit 1
+option characters are assumed, but, to be more specific,
+.Nm
+uses
+.Xr busybox 1
+ash ulimit characters.
+If specified as a number, any number specified in
+.In sys/resource.h
+header for
+.Em RLIMIT_
+macros is valid.
+The same is for name,
+.Nm
+accepts here symbolic names of macros, like
+.Em RLIMIT_CPU
+or
+.Em RLIMIT_NPROC.
+The operating system may not define all known resource limits, hence undefined entries will be absent and not recognised.
+This operation requires special access and by default is restricted.
+.It Fl n
+Do not ask for a password at all. In case when password is required,
+.Nm
+will return an error.
+.It Fl N
+If an external password asking program was configured and it fails to run for some reason, or blocks password reading at all, tell
+.Nm
+to ask password from tty as it was before.
+.It Fl p
+Print exact target
+.Ic cmdline
+to stdandard error before it will be actually executed.
+.It Fl P
+Preserve most of invoker environment.
+.Nm
+will save invoker environment and then put it across border. Sensitive and critical environment variables will be still overwritten. Additionally, processing of environment will occur if specified by configuration.
+.It Fl Q Ar prio
+Set target process priority to
+.Em prio.
+prio is expressed in
+.Xr nice 1
+numbers.
+This is always done prior to changing credentials, so any value can be given, if usage of this option is permitted.
+This operation requires special access and by default is restricted.
+.It Fl R Ar newroot
+.Xr chroot 2
+into specified
+.Em newroot
+and then run a target program from there.
+Note that target program must exist inside chroot, or error will occur, in most cases it will be ENOENT.
+.It Fl v
+Print informational message of following format:
+.Bd -literal -offset 8n
+Running `id -u`,
+as root(0),root(0):root(0),root(0)[root]
+.Ed
+
+before running the command line. It is like
+.Op Fl p
+, but also gives out information about target user under which given command line will be executed.
+The formal is almost exact copy of
+.Va warnusr
+question format, only without question form.
+.It Fl y
+When used with
+.Op Fl b
+, print process id number (pid) of spawned background program.
+.It Fl w
+Display a warning question to invoker about what is going to be run.
+It is same as setting
+.Va warnusr
+flag in rule line in config file, but is available to invoker directly. If disabled with
+.Va noopt_w ,
+then
+.Nm
+will reject running the cmdline.
+Note that
+.Va nowarnusr
+will not disable this option alone without
+.Va noopt_w .
+.It Fl V
+Show
+.Nm
+version information and short description:
+
+access: authenticator for Unix systems
+.br
+Version xxx
+
+If run by superuser, and more than one
+.Op Fl V
+is given, then displays additional information about compile time defaults, some internal variables and current lists of sensitive environment variables.
+
+.Sh EXIT STATUS
+Generally,
+.Nm
+does not return on success, instead, a return value of target program which was executed is returned.
+In case when user submitted a background task with
+.Op Fl b
+, an exit status of 0 indicates success, error otherwise.
+
+On any operating system error,
+.Nm
+returns values that shells usually return: 127 on
+.Dq not found
+and 126 on other errors.
+
+.Nm
+returns 1 in case of bad arguments and 2 if internal errors were detected prior to judgement about permissions.
+
+.Nm
+returns 1 when it strictly had determined that invoker has no permission.
+
+Usually, an error message is emitted by
+.Nm
+if something gone wrong. Only in
+.Va silent
+mode error messages do not appear at all, but return value will be crafted to 0 (success) in this mode.
+
+Error messages usually state clear what happened wrong. If you still cannot understand why
+.Nm
+denied the action, consult your system administrator.
+
+Note that if system administrator had configured
+.Nm
+to consult access with external audit program,
+.Nm
+behavior may be altered in completely arbitrary way by audit program behind the scenes.
+
+.Sh ENVIRONMENT
+.Nm
+does not care about invoker environment. It usually resets environment in a secure way. If permitted,
+.Nm
+can save parts of invoker environment and translate them across the border.
+
+Most notable environment variable is
+.Ev PATH
+, which is always overwritten.
+Superuser is able to overwrite it however. Nevertheless, it always touched.
+
+.Nm
+by default is instructed to put additional
+.Dq sensitive
+environment variables, namely
+.Ev HOME,
+.Ev USER,
+.Ev LOGNAME,
+.Ev UID,
+and
+.Ev SHELL
+to the target program environment. Unless
+.Op Fl P
+is supplied or configuration flags, they will appear by default even if
+.Op Fl E
+is specified.
+
+.Nm
+can tell target program something about invoker by setting additional
+.Ev ACCESS_
+prefixed environment variables. They will contain invoker (public) credentials information.
+In addition,
+.Nm
+can tell target program credentials as well with
+.Ev ACCESS_D_
+prefixed environment variables.
+See
+.Xr access.conf 5
+for a flags that control these variables as well as for exact list of them.
+
+.Nm
+implements an internal lists of so called
+.Dq forbidden
+environment variables, which are used by various internals of many operating environments and systems like dynamic and runtime linkers, networking libraries, shells and scripting language interpreters, locale and language libraries and so on.
+.Nm
+has collected most of such popular variables and keeps this list inside, removing each found variable from, and supplied by invoker, environment. Superuser, in addition to this list, can define it's own one, and those two will be concatenated and form a common one.
+
+Superuser can set and unset individual variables implicitly within configuration.
+
+.Sh SIGNALS
+.Nm
+ignores most signals during it's run. In addition to that it becomes unkillable if being run by regular unprivileged user. It listens to some terminal related signals though when asking for password or asking user's permission to run a program.
+
+.Nm
+cannot be killed when it enters blocksleep: a sleep followed by block of most signals when user had no permission to run a command. This ensures that user cannot kill
+.Nm
+and try to guess password again, possibly, from a password brute force script.
+Terminal related signals are also blocked and ignored.
+Only superuser can kill blocked
+.Nm ,
+including sending fatal signals uncatchable by
+.Nm .
+
+.Sh WARNINGS AND PRECAUTIONS
+
+If you are regular user, then you should not try to brute force
+.Nm
+or try to guess in any other way how to make
+.Nm
+permit you to run specified cmdline. You should realise that any of your actions and interactions with
+.Nm
+are logged, and
+.Nm
+is strict about logging, especially about logging failed conditions.
+
+Please note that
+.Nm
+can stuck in an infinite state or just hang for a long time not releasing your terminal,
+so you could lose a control because
+.Nm
+will not release your terminal easily, especially when it entered blocked sleep.
+This can happen in many, many situations, including external programs can completely hang
+.Nm
+in infinite state because
+.Nm
+will wait for their decision.
+
+Before running any program through
+.Nm
+you should think twice. Minimum penalty is delay holding your tty and log entry. Maximum is your system administrator attention ;-)
+
+If you are a superuser (system administrator), then, when running programs as regular users, you should
+.Em FIRST
+test their rights with something like
+.Dq access -u user id ,
+or
+.Dq access -u user access -c id ,
+before running actual program.
+You can also consult their environment variables with
+.Xr env 1 .
+
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/access.conf
+Program main configuration and rules file. It's syntax in detail is explained in
+.Xr access.conf 5 .
+.It Pa /etc/skcrypt.conf
+.Nm
+recognises Skein1024 per site encryption settings and also applies them for it's internal universal crypt function, if Skein hash function was included at compile time.
+.It Pa /var/log/access.log
+Main log file where
+.Nm
+stores successful and failed log entries. Optionally,
+.Nm
+can be configured to log to syslog instead, then this file is omitted and not used (even created or touched), but it is strongly encouraged to use a dedicated file because it was reported that some syslog implementations trim too large lines that
+.Nm
+can generate.
+.It Pa /var/run/uid.access
+Lock file for each
+.Em uid
+that invoked
+.Nm .
+Lock files are created to ensure that only one
+.Nm
+copy is running for this uid, and no brute force is in progress.
+If more than one copy is executed when this file exists,
+.Nm
+will exit and leave log entry (if configured) with sufficient message.
+
+Please note that if such a file is stuck for particular uid and such a uid had privileged access,
+then
+.Nm
+can stuck and will not let uid run any commands but will always refuse until lock file removal.
+
+Lock files
+.Em never
+created for superuser.
+
+Lock file pattern can be changed by superuser in
+.Xr access.conf 5 ,
+the described above is for
+.Nm
+builtin default. See
+.Xr access.conf 5
+manual page for description of lock files.
+
+.It Pa /bin/sh
+Default shell used with -I command line argument.
+
+.It Pa /
+Default directory used when it is not possible to chdir into specified directory.
+
+Most of specified paths can be changed by compile time options.
+
+.Sh EXAMPLES
+.Bd -literal
+Running program as root:
+
+	% access id
+	Password:
+	uid=0(root) gid=0(root) groups=0(root)
+
+Running program as test:
+
+	% access -u test id
+	...
+
+Running program as test, and set it's groups to nobody, tty and wheel:
+
+	% access -u test -s nobody,tty,wheel id
+
+Running program as test, but add group wheel and remove group tty
+to default grouplist of user test:
+
+	% access -u test -S +wheel,-tty id
+
+Running (making) setuid program:
+
+	% access -u test -t id
+
+Putting program to background:
+
+	% access -b apt-get update
+	% # notice, it returned immediately
+
+.Nm
+can be configured to tell what it will run:
+
+	% access -b apt-get update
+	You are about to execute this:
+	`id`,
+	as root(0),root(0):root(0),root(0)[root]
+	Continue? y
+	%
+
+Login as user test:
+
+	% access -u test -l
+	Password:
+	test% id
+	uid=9999(test) gid=9999(test) groups=4(tty),9999(test)
+
+Login as user test, then chdir into /tmp/test:
+
+	% access -u test -d /tmp/test -l
+
+Checking identity:
+
+	% access -c id
+	uid=1000(lynx) gid=1000(lynx) groups=200(wheel),1000(lynx)
+	% access -u test -c id
+	uid=9999(test) gid=9999(test) groups=4(tty),9999(test)
+	% access -u test -c udir
+	/tmp
+	% access -c udir
+	/u/lynx
+
+	# Note that these commands do not execute real id program
+
+You can easily check identity by running these tests as user:
+
+	% access -u test access -c id
+
+Set environment variables:
+
+	% access -u test -e HOMEDIR=`access -u test -c udir` env
+
+Run a single program from other user:
+
+	% access -u test -bD xfe
+	% # xfe appears
+
+Run a program that requires privileges, from shell script:
+
+	#!/bin/sh
+	exec access -xt execvp /local/X11/bin/Xorg.real X "$@"
+
+Run a program from hashbang:
+
+	% cat /tmp/tst
+	#!/bin/access -u test -g tty /bin/sh
+	id
+	% /tmp/tst # runs "/bin/sh /tmp/tst" as test:tty
+	uid=9999(test) gid=4(tty) groups=4(tty),9999(test)
+
+Run setuid shell script (note that shell can drop setuid status):
+
+	% cat /tmp/tst
+	#!/bin/access -x -t /bin/sh
+	id
+	% /tmp/tst
+	uid=1000(lynx) gid=1000(lynx) euid=0(root) groups=200(wheel),1000(lynx)
+
+A chroot wrapper:
+
+	% cat /tmp/chrootx
+	#!/bin/sh
+	exec access -x -R /chroots/x11 -b -D rxvt -title chroot
+
+I use this skeleton for setuid programs:
+
+	#!/bin/sh
+	exec access -xt execvp /local/bin/dumpcap.real dumpcap "$@"
+
+, then I move setuid program, remove setuid bit and put this shell script in place.
+execvp here is used to set argv[0] because it easier to match by whole cmdline.
+
+Previous one can be replaced with something like this:
+
+	#!/bin/access -x -t /bin/sh
+	exec execvp /local/bin/dumpcap.real dumpcap "$@"
+
+.Ed
+There are many more examples that can show how
+.Nm
+is powerful.
+
+.Sh SECURITY NOTES
+.Nm
+always assumes that superuser has uid set to zero (0). Superuser is permitted to do anything, and
+.Nm
+does not try to restrict superuser in any way.
+
+By default, if user specified, group id and group list are set to target user is in.
+.br
+.Sy ALWAYS
+check target permissions with
+.Do
+.Nm
+-c id
+.Dc
+executed as target user!
+
+.Sh AUTHORS
+.Nm
+was written by Andrey
+.Dq ElectroRys
+Rys. You can contact him by email:
+.Mt rys@lynxlynx.ru .
+
+There is NO WARRANTY of any kind.
+
+.Sh SEE ALSO
+
+.Xr access.conf 5 ,
+.Xr passwd 5 ,
+.Xr shadow 5 ,
+.Xr su 1 ,
+.Xr sudo 8 ,
+.Xr crypt 3
