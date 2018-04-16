@@ -565,6 +565,17 @@ int main(int argc, char **argv)
 					pfree(dstdir);
 					dstdir = acs_realpath(acs_optarg);
 					if (!dstdir) {
+						if (chrootdir) {
+							s = NULL;
+							acs_asprintf(&s, "%s/%s", chrootdir, acs_optarg);
+							d = acs_realpath(s);
+							if (d) {
+								dstdir = acs_strdup(acs_optarg);
+								pfree(d);
+								pfree(s);
+								break;
+							}
+						}
 						if (is_super_user()) {
 							acs_perror("%s", acs_optarg);
 							dstdir = acs_strdup(default_root);
@@ -583,6 +594,8 @@ int main(int argc, char **argv)
 				pfree(chrootdir);
 				chrootdir = acs_realpath(acs_optarg);
 				if (!chrootdir) xerror("%s", acs_optarg);
+				pfree(dstdir);
+				dstdir = acs_strdup(default_root);
 				if (!strcmp(chrootdir, default_root)) pfree(chrootdir);
 				break;
 			case 'p':
@@ -685,13 +698,24 @@ int main(int argc, char **argv)
 		pfree(dstdir);
 		dstdir = acs_realpath(s);
 		if (!dstdir) {
+			if (chrootdir) {
+				d = NULL;
+				acs_asprintf(&d, "%s/%s/%s", chrootdir, dstusrdir, d_arg);
+				t = acs_realpath(d);
+				if (t) {
+					dstdir = acs_strdup(s);
+					pfree(t);
+					pfree(d);
+					goto _d_arg_out;
+				}
+			}
 			if (is_super_user()) {
 				acs_perror("%s", s);
 				dstdir = acs_strdup(dstusrdir);
 			}
 			else xerror("%s", s);
 		}
-		pfree(s);
+_d_arg_out:	pfree(s);
 		pfree(d_arg);
 	}
 	if (!dstdir) {
