@@ -567,7 +567,7 @@ int main(int argc, char **argv)
 					if (!dstdir) {
 						if (chrootdir) {
 							s = NULL;
-							acs_asprintf(&s, "%s/%s", chrootdir, acs_optarg);
+							acs_asprintf(&s, "%s%s", chrootdir, acs_optarg);
 							d = acs_realpath(s);
 							if (d) {
 								dstdir = acs_strdup(acs_optarg);
@@ -700,7 +700,7 @@ int main(int argc, char **argv)
 		if (!dstdir) {
 			if (chrootdir) {
 				d = NULL;
-				acs_asprintf(&d, "%s/%s/%s", chrootdir, dstusrdir, d_arg);
+				acs_asprintf(&d, "%s%s/%s", chrootdir, dstusrdir, d_arg);
 				t = acs_realpath(d);
 				if (t) {
 					dstdir = acs_strdup(s);
