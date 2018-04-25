@@ -117,7 +117,6 @@ void print_builtin_defs(void)
 {
 	size_t x;
 
-	acs_say("\n");
 	acs_say("Compiled-in defaults:");
 	acs_say("default flags: \"%s\"", DEFAULT_FLAGS);
 	acs_say("default spath: \"%s\"", SAFE_PATH);
@@ -226,8 +225,14 @@ void print_uidinfos(char *c_opt_str, int pui_flags)
 #ifdef _ACCESS_VERSION
 void show_version(void)
 {
+	acs_say("\n");
 	acs_say(PROGRAM_NAME ": authenticator for Unix systems");
 	acs_say("Version " _ACCESS_VERSION);
+	acs_say("\n");
+	acs_say("Copyright (C) Andrey Rys. All rights reserved.");
+	acs_say("This program is licensed to you under std. MIT license.");
+	acs_say("For details, see COPYRIGHT file in source archive.");
+	acs_say("\n");
 	if (is_super_user() && arg_V_cnt == 2) print_builtin_defs();
 	acs_exit(0);
 }
