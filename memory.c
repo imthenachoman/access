@@ -185,7 +185,7 @@ void *acs_malloc(size_t n)
 	r = sm_malloc(n);
 	if (!r) {
 		errstr = NULL;
-		xerror("s_malloc");
+		xerror("acs_malloc");
 		return NULL;
 	}
 
@@ -207,7 +207,7 @@ void *acs_realloc(void *p, size_t n)
 	r = sm_realloc(p, n);
 	if (!r && n) {
 		errstr = NULL;
-		xerror("s_realloc");
+		xerror("acs_realloc");
 		return NULL;
 	}
 	else return r;
