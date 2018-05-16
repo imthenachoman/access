@@ -206,7 +206,7 @@ static int getpidcreds(pid_t pid, struct pidcreds *pcred)
 	}
 	while (1) {
 		if (uidread && gidread && groupsread) break;
-		if (s_fgets(str, ACS_ALLOC_SMALL, f) == NOSIZE) break;
+		if (acs_fgets(str, ACS_ALLOC_SMALL, f) == NOSIZE) break;
 		if (!strncmp(str, "Uid:", 4)) {
 			x = sscanf(str+4, "\t%u\t%u", &pcred->ruid, &pcred->euid);
 			if (x < 2) goto _err;
@@ -332,7 +332,7 @@ static int create_client_socket(const char *sockname)
 
 static size_t daccess_encode_int(int x, char *ex)
 {
-	return (size_t)s_snprintf(ex, DACCESS_EINT_SZ, "I%0*x", sizeof(int)*2, x) + 1;
+	return (size_t)acs_snprintf(ex, DACCESS_EINT_SZ, "I%0*x", sizeof(int)*2, x) + 1;
 }
 
 static int daccess_decode_int(const char *ex)
@@ -348,7 +348,7 @@ static int daccess_decode_int(const char *ex)
 
 static size_t daccess_encode_size(size_t x, char *ex)
 {
-	return (size_t)s_snprintf(ex, DACCESS_ESIZE_SZ, "Z%0*x", sizeof(size_t)*2, x) + 1;
+	return (size_t)acs_snprintf(ex, DACCESS_ESIZE_SZ, "Z%0*x", sizeof(size_t)*2, x) + 1;
 }
 
 static size_t daccess_decode_size(const char *ex)
