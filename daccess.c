@@ -372,7 +372,7 @@ static size_t daccess_send(int fd, const void *ptr, size_t l)
 	size_t r;
 
 	r = send(fd, ptr, l, MSG_NOSIGNAL);
-	if (r == -1) return -1;
+	if (r == NOSIZE) return NOSIZE;
 
 	return r;
 }
@@ -513,14 +513,14 @@ static size_t daccess_receive_data(int fd, void *ptr, size_t l)
 	size_t x;
 
 	x = daccess_receive_size(fd);
-	if (x > l || x == NOSIZE) return -1;
+	if (x > l || x == NOSIZE) return NOSIZE;
 
 	return daccess_receive(fd, ptr, x);
 }
 
 static size_t daccess_send_data(int fd, const void *ptr, size_t l)
 {
-	if (daccess_send_size(fd, l) == NOSIZE) return -1;
+	if (daccess_send_size(fd, l) == NOSIZE) return NOSIZE;
 
 	return daccess_send(fd, ptr, l);
 }
