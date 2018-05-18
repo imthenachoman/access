@@ -237,8 +237,9 @@ void readin_default_settings(void)
 		 */
 		if (!strcmp(ln, "%rules")) return;
 		/* No %unset really. Init stuff only! */
-		else if (!strncmp(ln, "%set ", 5))
+		else if (!strncmp(ln, "%set ", 5)) {
 			set_variable(ln+5, 1);
+		}
 		else if (!strncmp(ln, "%setenv ", 8)) {
 			s = acs_strchr(ln+8, '=');
 			if (!s) continue;
@@ -257,6 +258,12 @@ void readin_default_settings(void)
 			&& (is_envvar_exists(ln+8, EVC_OPTE_SET)
 			|| is_envvar_exists(ln+8, EVC_OPTE_UNSET))) continue;
 
+			if (builtin_envvar_enable(scary_envvars, scary_envvars_sz, ln+8, 0))
+				continue;
+			if (builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, ln+8, 0))
+				continue;
+
+			delete_envvars(ln+8, EVC_KEEP_SET, 1);
 			delete_envvars(ln+8, EVC_CONF_SET, 1);
 			delete_envvars(ln+8, EVC_CONF_UNSET, 1);
 		}
@@ -275,13 +282,6 @@ void readin_default_settings(void)
 
 			if (!is_envvar_exists(ln+9, EVC_KEEP_SET))
 				add_envvar(ln+9, NULL, EVC_KEEP_SET);
-		}
-		else if (!strncmp(ln, "%unbanenv ", 10)) {
-			embedded_variable_setstate(scary_envvars, scary_envvars_sz, ln+10, 0);
-		}
-		else if (!strncmp(ln, "%unkeepenv ", 11)) {
-			if (!embedded_variable_setstate(trusted_envvars, trusted_envvars_sz, ln+11, 0))
-				delete_envvars(ln+11, EVC_KEEP_SET, 1);
 		}
 		else if (!strncmp(ln, "%user ", 6)) continue; /* usermap stuff */
 		else {

@@ -1,4 +1,4 @@
-.Dd 13Apr2018
+.Dd 19May2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -41,16 +41,9 @@ understands:
 .Dq %unsetenv
 - removes environment variables from invoker environment, and undefines overriden ones,
 .Dq %delenv
-- just removes definition that was set previously with
-.Sq %setenv
-or
-.Sq %unsetenv ,
+- just removes definition that is internally defined,
 .Dq %keepenv
-- defines a environment variable which must be preserved,
-.Dq %unbanenv
-- unbans a predefined banned environment variable or environment variable pattern,
-.Dq %unkeepenv
-- disables a predefined trusted environment variable.
+- defines a environment variable which must be preserved.
 Special
 .Dq %rules
 keyword explicitly breaks parsing of defaults and starts parsing rules section from next line. This is needed if you have settings which share the invisible defaults-rules border. Without it, your possibly first rule specific settings will apply to defaults instead.
@@ -951,9 +944,9 @@ It will unset (remove) any previously defined environment variables with
 and any matching environment variable found in invoker's environ.
 
 .Dq %delenv
-accepts a name of previously defined environment variable with
-.Dq %setenv .
-It does not remove any really existing environment variables from source environment. The syntax is:
+accepts a name of previously defined environment variable.
+It does not remove any really existing environment variables from source environment,
+rather, it operates on the internal structures. The syntax is:
 .Dq %delenv SPEC ,
 where
 .Em SPEC
@@ -965,24 +958,6 @@ pattern.
 defines a new environment variable which, if found in invoker's environ, will be
 preserved across the borders and set inside target environ. The syntax is:
 .Dq %keepenv NAME .
-
-.Dq %unbanenv
-unbans a banned environment variable, or pattern. As it was said before, access carries an embedded list of
-.Sq bad ,
-.Sq evil ,
-.Sq scary ,
-.Sq banned
-environment variables which should never appear inside a controlled environ after sanitisation. access however gives a right to unban such variables manually in case when it's really needed. The syntax is:
-.Dq %unbanenv NAME ,
-where NAME may accept any banned variable or pattern listed in
-.Dq access -VV
-command output.
-
-.Dq %unkeepenv
-is similar to
-.Dq %unbanenv ,
-but disables a trusted variable inside access's embedded trusted environment variables list (which are always kept and transferred across border). The syntax is:
-.Dq %unkeepenv NAME .
 
 .Sh VIRTUAL USERS SECTION
 It follows after

@@ -348,7 +348,7 @@ void delete_envvars(const char *dname, flagtype class, int match_wildcards);
 void add_envvar_pair(const char *spec, flagtype class);
 int is_scary_envvar(const char *spec);
 void kill_scary_envvars(int suser);
-int embedded_variable_setstate(struct def_envvar_list *el, size_t elsz, const char *pattern, int state);
+int builtin_envvar_enable(struct def_envvar_list *el, size_t elsz, const char *pattern, int state);
 void set_user_environ(void);
 void fsa_add_uservars(struct fmtstr_args **fsa, size_t *nr_fsa);
 void preset_fsa_basic(struct fmtstr_args **fsa, size_t *nr_fsa);

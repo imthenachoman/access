@@ -189,7 +189,7 @@ flagtype execute_rule_match(void)
 		return 0;
 	}
 	if (!strncmp(ln, "%unkeepenv ", 11)) {
-		if (!embedded_variable_setstate(trusted_envvars, trusted_envvars_sz, ln+11, 0))
+		if (!builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, ln+11, 0))
 			delete_envvars(ln+11, EVC_KEEP_SET, 1);
 		return 0;
 	}

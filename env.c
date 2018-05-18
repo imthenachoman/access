@@ -296,13 +296,13 @@ static void set_envvars(flagtype class, int noparse)
 	pfree(fsa);
 }
 
-int embedded_variable_setstate(struct def_envvar_list *el, size_t elsz, const char *pattern, int state)
+int builtin_envvar_enable(struct def_envvar_list *el, size_t elsz, const char *pattern, int enab)
 {
 	size_t x;
 
 	for (x = 0; x < elsz; x++) {
 		if (!strcmp(el[x].pattern, pattern)) {
-			el[x].enabled = state;
+			el[x].enabled = enab;
 			return 1;
 		}
 	}

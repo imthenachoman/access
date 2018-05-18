@@ -128,18 +128,24 @@ void print_builtin_defs(void)
 	acs_say("Environment:");
 	acs_nsay("Always kept variables: ");
 	for (x = 0; x < trusted_envvars_sz; x++) {
-		if (!trusted_envvars[x].enabled) continue;
-		if (x && (x % 10) == 0) acs_say("\n");
-		else if (x) acs_nsay(", ");
-		acs_nsay("\"%s\"", trusted_envvars[x].pattern);
+		if (trusted_envvars[x].enabled) {
+			acs_nsay("\"%s\"", trusted_envvars[x].pattern);
+			if (trusted_envvars_sz-x != 1) {
+				if (x && ((x+1) % 10) == 0) acs_say("\n");
+				else acs_nsay(", ");
+			}
+		}
 	}
 	acs_say("\n");
 	acs_nsay("Always cleared variables: ");
 	for (x = 0; x < scary_envvars_sz; x++) {
-		if (!scary_envvars[x].enabled) continue;
-		if (x && (x % 5) == 0) acs_say("\n");
-		else if (x) acs_nsay(", ");
-		acs_nsay("\"%s\"", scary_envvars[x].pattern);
+		if (scary_envvars[x].enabled) {
+			acs_nsay("\"%s\"", scary_envvars[x].pattern);
+			if (scary_envvars_sz-x != 1) {
+				if (x && ((x+1) % 5) == 0) acs_say("\n");
+				else acs_nsay(", ");
+			}
+		}
 	}
 	acs_say("\n");
 }
