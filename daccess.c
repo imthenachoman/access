@@ -655,7 +655,6 @@ static int daccess_server_child(int clfd, int argc, char **argv)
 		setenv(s, d, 1);
 _badenv:	pfree(s);
 	}
-	kill_scary_envvars(1);
 	daccess_send_ack(clfd);
 
 	/* fds */
