@@ -122,16 +122,18 @@ static void do_login(const char *shell, const char *u, const char *g, const char
 static void do_exec(const char *cmdline, const char *shell,
 		    const char *u, const char *g, const char *G, int mp)
 {
-	char *P = "-E";
-
-	if (mp) P = "-P";
-
-	if (u && !g && !G)
-		execl(access_path, access_name, "-u", u, P, "--", shell, "-c", cmdline, NULL);
-	else if (u && g && !G)
-		execl(access_path, access_name, "-u", u, "-g", g, P, "--", shell, "-c", cmdline, NULL);
-	else if (u && g && G)
-		execl(access_path, access_name, "-u", u, "-g", g, "-s", G, P, "--", shell, "-c", cmdline, NULL);
+	if (u && !g && !G) {
+		if (mp) execl(access_path, access_name, "-u", u, "-P", "--", shell, "-c", cmdline, NULL);
+		else execl(access_path, access_name, "-u", u, "--", shell, "-c", cmdline, NULL);
+	}
+	else if (u && g && !G) {
+		if (mp) execl(access_path, access_name, "-u", u, "-g", g, "-P", "--", shell, "-c", cmdline, NULL);
+		else execl(access_path, access_name, "-u", u, "-g", g, "--", shell, "-c", cmdline, NULL);
+	}
+	else if (u && g && G) {
+		if (mp) execl(access_path, access_name, "-u", u, "-g", g, "-s", G, "-P", "--", shell, "-c", cmdline, NULL);
+		else execl(access_path, access_name, "-u", u, "-g", g, "-s", G, "--", shell, "-c", cmdline, NULL);
+	}
 	else su_usage();
 }
 
