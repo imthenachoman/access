@@ -30,20 +30,102 @@
 
 int refind_exec;
 
+struct conf_stack {
+	char *path; /* fs path */
+	void *cfg; /* confdata handle */
+};
+
+static struct conf_stack *config_stack;
+
+static struct conf_stack *get_cur_conf(void)
+{
+	size_t sz;
+
+	sz = DYN_ARRAY_SZ(config_stack);
+	if (sz == 0) return NULL;
+	return &config_stack[sz-1];
+}
+
+static void *get_cur_conf_data(void)
+{
+	struct conf_stack *cfs;
+
+	cfs = get_cur_conf();
+	if (!cfs) return NULL;
+	return cfs->cfg;
+}
+
+char *get_cur_conf_name(void)
+{
+	struct conf_stack *cfs;
+
+	cfs = get_cur_conf();
+	if (!cfs) return NULL;
+	return cfs->path;
+}
+
+int *pget_cur_conf_lnum(void)
+{
+	struct conf_stack *cfs;
+
+	cfs = get_cur_conf();
+	if (!cfs) return NULL;
+	return config_current_line_number(cfs->cfg);
+}
+
+int get_cur_conf_lnum(void)
+{
+	int *r = pget_cur_conf_lnum();
+	if (!r) return 0;
+	return *r;
+}
+
+static void add_conf_to_stack(const char *path, void *cfg)
+{
+	size_t sz;
+
+	sz = DYN_ARRAY_SZ(config_stack);
+	config_stack = acs_realloc(config_stack, (sz+1) * sizeof(struct conf_stack));
+	config_stack[sz].path = acs_strdup(path);
+	config_stack[sz].cfg = cfg;
+}
+
+int free_conf(void)
+{
+	size_t sz;
+
+	sz = DYN_ARRAY_SZ(config_stack);
+	if (sz == 0) return 0;
+	pfree(config_stack[sz-1].path);
+	free_config(config_stack[sz-1].cfg);
+	config_stack = acs_realloc(config_stack, (sz-1) * sizeof(struct conf_stack));
+	return 1;
+}
+
+void free_conf_all(void)
+{
+	while (1) if (!free_conf()) return;
+}
+
 char *get_conf_line(void)
 {
 	static char *confline;
 	size_t x;
-	char *s, *d;
+	char *line, *s, *d;
+	void *cfg;
 
 	if (!confline) confline = acs_malloc(ACS_ALLOC_MAX);
 
-	if (!conffile || ferror(conffile) || feof(conffile)) return NULL;
+	cfg = get_cur_conf_data();
+	if (!cfg) return NULL;
 
 _again:
-	x = acs_fgets(confline, ACS_ALLOC_MAX-1, conffile);
-	if (x == NOSIZE) return NULL;
-	if (!x || iscomment(confline)) goto _again;
+	line = get_config_line(cfg);
+	if (!line) return NULL;
+	if (is_comment(line)) goto _again;
+
+	x = acs_strlcpy(confline, line, ACS_ALLOC_MAX-1);
+	if (x == 0) goto _again;
 
 	s = confline+(x-1);
 
@@ -60,12 +142,13 @@ _again3:
 		s = d+1;
 
 		/* get line remainder */
-_again2:	x = acs_fgets(s, ACS_ALLOC_MAX-1-(s-confline), conffile);
-		if (x == NOSIZE) {
+_again2:	line = get_config_line(cfg);
+		if (!line) {
 			*s = 0;
 			goto _done;
 		}
-		if (!x) goto _again2;
+		x = acs_strlcpy(s, line, ACS_ALLOC_MAX-1-(s-confline));
+		if (x == 0) goto _again2;
 
 		/* cleanup of leading tabs */
 		d = s;
@@ -75,7 +158,7 @@ _again2:	x = acs_fgets(s, ACS_ALLOC_MAX-1-(s-confline), conffile);
 			d++;
 		}
 		/* This is comment? Get a new one! */
-		if (iscomment(d)) goto _again2;
+		if (is_comment(d)) goto _again2;
 		if (d-s) {
 			/* move string to beginning, erasing NULs */
 			memmove(s, d, x);
@@ -90,27 +173,31 @@ _again2:	x = acs_fgets(s, ACS_ALLOC_MAX-1-(s-confline), conffile);
 _done:	return confline;
 }
 
-int open_conf(void)
+int open_conf(const char *path)
 {
 	struct stat st;
+	int fd;
+	void *cfg;
 
-	if (lstat(PATH_CONF, &st) == -1) return 0;
+	if (lstat(path, &st) == -1) return 0;
 	if (!cfg_permission(&st)) {
 		seterr("wrong mode");
 		return 0;
 	}
-	conffile = fopen(PATH_CONF, "rb");
-	if (!conffile) return 0;
 
-	return 1;
-}
+	fd = open(path, O_RDONLY);
+	if (fd == -1) return 0;
 
-void reset_conf(long to)
-{
-	if (conffile) {
-		if (fseek(conffile, 0L, SEEK_SET) == -1) xerror("rewinding config file failed");
-		if (to) if (fseek(conffile, to, SEEK_SET) == -1) xerror("rewinding config file failed");
+	cfg = load_config(fd);
+	if (!cfg) {
+		close(fd);
+		seterr("load_config failed");
+		return 0;
 	}
+
+	close(fd);
+	add_conf_to_stack(path, cfg);
+	return 1;
 }
 
 #define xsetflag(x, y) do { setflag(x, y); if (single) goto _ret; } while (0)
@@ -226,92 +313,108 @@ _ret:	if (suflags_p) *suflags_p = suflags_l;
 
 void readin_default_settings(void)
 {
-	char *ln, *s;
+	char *ln, *lnarg, *s;
 
-	reset_conf(0);
+	reset_config(get_cur_conf_data());
 
 	while ((ln = get_conf_line())) {
+		if (*ln == '%') {
+			lnarg = acs_strchr(ln, ' ');
+			if (lnarg) {
+				*lnarg = 0;
+				lnarg++;
+			}
+			else lnarg = ln;
+		}
+		else lnarg = ln;
+
 		/*
 		 * Explicit start of rules section.
 		 * Why? Because no need to rewind.
 		 */
-		if (!strcmp(ln, "%rules")) return;
-		/* No %unset really. Init stuff only! */
-		else if (!strncmp(ln, "%set ", 5)) {
-			set_variable(ln+5, 1);
-		}
-		else if (!strncmp(ln, "%setenv ", 8)) {
-			s = acs_strchr(ln+8, '=');
-			if (!s) continue;
-			*s = 0;
-
-			if (is_envvar_exists(ln+8, EVC_CONF_UNSET)) continue;
-
-			if (is_super_user()
-			&& (is_envvar_exists(ln+8, EVC_OPTE_SET)
-			|| is_envvar_exists(ln+8, EVC_OPTE_UNSET))) continue;
-
-			add_envvar(ln+8, s+1, EVC_CONF_SET);
-		}
-		else if (!strncmp(ln, "%delenv ", 8)) {
-			if (is_super_user()
-			&& (is_envvar_exists(ln+8, EVC_OPTE_SET)
-			|| is_envvar_exists(ln+8, EVC_OPTE_UNSET))) continue;
-
-			if (builtin_envvar_enable(scary_envvars, scary_envvars_sz, ln+8, 0))
-				continue;
-			if (builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, ln+8, 0))
-				continue;
-
-			delete_envvars(ln+8, EVC_KEEP_SET, 1);
-			delete_envvars(ln+8, EVC_CONF_SET, 1);
-			delete_envvars(ln+8, EVC_CONF_UNSET, 1);
-		}
-		else if (!strncmp(ln, "%unsetenv ", 10)) {
-			if (is_super_user()
-			&& (is_envvar_exists(ln+10, EVC_OPTE_SET)
-			|| is_envvar_exists(ln+10, EVC_OPTE_UNSET))) continue;
-
-			delete_envvars(ln+10, EVC_CONF_SET, 1);
-			add_envvar(ln+10, NULL, EVC_CONF_UNSET);
-		}
-		else if (!strncmp(ln, "%keepenv ", 9)) {
-			if (is_super_user()
-			&& (is_envvar_exists(ln+9, EVC_OPTE_SET)
-			|| is_envvar_exists(ln+9, EVC_OPTE_UNSET))) continue;
-
-			if (!is_envvar_exists(ln+9, EVC_KEEP_SET))
-				add_envvar(ln+9, NULL, EVC_KEEP_SET);
-		}
-		else if (!strncmp(ln, "%user ", 6)) continue; /* usermap stuff */
-		else {
-			size_t x = acs_strnlen(ln, ACS_ALLOC_MAX);
-			long y = ftell(conffile);
-			y -= x; y--;
-			reset_conf(y > 0 ? y : 0);
+		if (!strcmp(ln, "%rules")) {
 			return;
 		}
+		/* No %unset really. Init stuff only! */
+		else if (!strcmp(ln, "%set")) {
+			set_variable(lnarg, 1);
+		}
+		else if (!strcmp(ln, "%setenv")) {
+			s = acs_strchr(lnarg, '=');
+			if (!s) continue;
+			*s = 0; s++;
+
+			if (is_envvar_exists(lnarg, EVC_CONF_UNSET)) continue;
+
+			if (is_super_user()
+			&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+			|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) continue;
+
+			add_envvar(lnarg, s, EVC_CONF_SET);
+		}
+		else if (!strcmp(ln, "%delenv")) {
+			if (is_super_user()
+			&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+			|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) continue;
+
+			if (builtin_envvar_enable(scary_envvars, scary_envvars_sz, lnarg, 0))
+				continue;
+			if (builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, lnarg, 0))
+				continue;
+
+			delete_envvars(lnarg, EVC_KEEP_SET, 1);
+			delete_envvars(lnarg, EVC_CONF_SET, 1);
+			delete_envvars(lnarg, EVC_CONF_UNSET, 1);
+		}
+		else if (!strcmp(ln, "%unsetenv")) {
+			if (is_super_user()
+			&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+			|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) continue;
+
+			delete_envvars(lnarg, EVC_CONF_SET, 1);
+			add_envvar(lnarg, NULL, EVC_CONF_UNSET);
+		}
+		else if (!strcmp(ln, "%keepenv")) {
+			if (is_super_user()
+			&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+			|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) continue;
+
+			if (!is_envvar_exists(lnarg, EVC_KEEP_SET))
+				add_envvar(lnarg, NULL, EVC_KEEP_SET);
+		}
+		else if (!strcmp(ln, "%user")) continue; /* usermap stuff */
+		else return;
 	}
 }
 
 void readin_usermaps(void)
 {
-	char *ln, *s;
+	char *ln, *lnarg, *s;
 	char *user, *hash, *udir, *shell;
 	uid_t u; gid_t g;
 	size_t sz;
 
-	reset_conf(0);
+	reset_config(get_cur_conf_data());
 
 	while ((ln = get_conf_line())) {
 		user = hash = udir = shell = NULL;
 		u = NOUID; g = NOGID;
-		if (!strncmp(ln, "%user ", 6)) {
-			ln += 6;
-			if (acs_strchr(ln, ':')) { /* new passwd format (omitting gecos) */
+
+		if (*ln == '%') {
+			lnarg = acs_strchr(ln, ' ');
+			if (lnarg) {
+				*lnarg = 0;
+				lnarg++;
+			}
+			else lnarg = ln;
+		}
+		else lnarg = ln;
+
+		if (!strcmp(ln, "%user")) {
+			if (acs_strchr(lnarg, ':')) { /* new passwd format (omitting gecos) */
 				char *ss, *dd, *tt = NULL;
 				int x = 0;
-				ss = dd = ln;
+				ss = dd = lnarg;
 				while ((ss = acs_strtok_r(dd, ":", &tt))) {
 					if (dd) dd = NULL;
 					switch (x) {
@@ -337,10 +440,10 @@ void readin_usermaps(void)
 					x++;
 				}
 			}
-			else if ((s = acs_strchr(ln, ' '))) { /* old "user hash" format */
+			else if ((s = acs_strchr(lnarg, ' '))) { /* old "user hash" format */
 				*s = 0; s++;
 				hash = s;
-				user = ln;
+				user = lnarg;
 			}
 			else continue;
 
@@ -804,14 +907,6 @@ void unset_variable(const char *name)
 			pfree(setvars[x+1]);
 			return;
 		}
-	}
-}
-
-void close_conf(void)
-{
-	if (conffile) {
-		fclose(conffile);
-		conffile = NULL;
 	}
 }
 

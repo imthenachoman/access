@@ -309,9 +309,9 @@ int main(int argc, char **argv)
 	if (prsvrlims_fail) {
 		xexits("failed resetting resource limits to sane values or setting them back.");
 	}
+#endif
 #ifdef _POSIX_MEMLOCK
 	if (!lockpages()) xexits("locking pages into memory failed");
-#endif
 #endif
 /* Ignore any signals at this point, I do not want garbage in the logs */
 	install_signals(SIG_IGN);
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
 	srcgidss = build_usergroups(srcgsz, srcgids, 0, 1);
 
 /* Open our configuration */
-	if (!open_conf()) if (!is_super_user()) xerror("%s", PATH_CONF);
+	if (!open_conf(PATH_CONF)) if (!is_super_user()) xerror("%s", PATH_CONF);
 /*
  * So I need to do that early, because of extended virtual user format
  * THIS can affect REAL user information, but only when extended %user is used!
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 				break;
 			case 'f':
 				if (!is_super_user()) xexits("only superuser can do this.");
-				close_conf();
+				free_conf_all();
 				break;
 			case 'F':
 				setflag(&argflags, ARG_F);
@@ -635,6 +635,8 @@ int main(int argc, char **argv)
 	resolve_flags(DEFAULT_FLAGS, 0, &suflags, &argflags, &notargflags);
 /* Try to read "defaults" (former %def) before any first rule will be met */
 	readin_default_settings();
+/* Kill all the scary envvars. */
+	kill_scary_envvars(is_super_user());
 
 	if (usage_long_req) usage_long();
 #ifdef _ACCESS_VERSION
@@ -899,7 +901,9 @@ _bypass: /* I am already superuser */
 
 		auditsetenv(s, "%s=%s", "ACCESS_FLAGS", trigflags);
 
+		auditsetenv(s, "%s=%s", "ACCESS_CONF", get_cur_conf_name());
 		auditsetenv(s, "%s=%s", "ACCESS_LINE", trigline);
+		auditsetenv(s, "%s=%u", "ACCESS_LINE_NUMBER", get_cur_conf_lnum());
 
 		auditsetenv(s, "%s=%s", "ACCESS_MATCH_TYPE", get_match_type(match_type));
 
@@ -929,8 +933,6 @@ if (isflag(argflags, ARG_D) || isflag(argflags, ARG_d)) {
 if (schrootdir && chrootdir) {
 		auditsetenv(s, "%s=%s", "ACCESS_CHROOT", chrootdir);
 }
-
-		auditsetenv(s, "%s=%s", "ACCESS_CONF", PATH_CONF);
 #ifdef SYSLOG_SUPPORT
 		auditsetenv(s, "%s=%s", "ACCESS_LOG", isflag(suflags, FLG_SYSLOG) ? "<syslog>" : logpath);
 #else
@@ -991,7 +993,7 @@ if (schrootdir && chrootdir) {
 	}
 
 _bypassaudit:
-	close_conf();
+	free_conf_all();
 
 	if (isflag(argflags, ARG_l)) acs_chdir(dstdir, is_super_user());
 

@@ -63,17 +63,6 @@ size_t char_to_nul(char *s, size_t l, char c)
 	return found ? s-os : NOSIZE;
 }
 
-int iscomment(const char *s)
-{
-	if (str_empty(s)
-	|| *s == '#'
-	|| *s == '\n'
-	|| (*s == '\r' && *(s+1) == '\n')
-	|| *s == ';'
-	|| (*s == '/' && *(s+1) == '/')) return 1;
-	return 0;
-}
-
 int acs_snprintf(char *s, size_t n, const char *fmt, ...)
 {
 	int r;

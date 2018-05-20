@@ -154,7 +154,6 @@ extern char *curr_secs;
 extern int fullinfo;
 
 extern pid_t ourpid, parentpid;
-extern FILE *conffile;
 extern char *timefmt, *logfmt;
 extern flagtype suflags, argflags, notargflags;
 extern char *execname;
@@ -287,16 +286,28 @@ char *which(const char *spathspec, const char *progname, const char *root);
 
 /* conf.c */
 
+char *get_cur_conf_name(void);
+int get_cur_conf_lnum(void);
+int *pget_cur_conf_lnum(void);
+int free_conf(void);
+void free_conf_all(void);
 char *get_conf_line(void);
-int open_conf(void);
-void reset_conf(long to);
+int open_conf(const char *path);
 void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype *argflags_p, flagtype *notargflags_p);
 void readin_usermaps(void);
 void readin_default_settings(void);
 void set_variable(const char *spec, int init);
 void unset_variable(const char *name);
-void close_conf(void);
 void update_vars(void);
+
+/* confdata.c */
+
+int is_comment(const char *s);
+void *load_config(int fd);
+char *get_config_line(void *config);
+int *config_current_line_number(void *config);
+void reset_config(void *config);
+void free_config(void *config);
 
 /* crypt.c */
 
@@ -322,6 +333,8 @@ char *acs_getcwd(void);
 char *acs_realpath(const char *path);
 int file_or_dir(const char *path);
 int is_abs_rel(const char *progname);
+char **read_match_dir(const char *pattern);
+void free_match_dir(char **r);
 
 /* daccess.c */
 
@@ -543,7 +556,6 @@ struct fmtstr_state {
 #define newline_to_nul(s, l) char_to_nul(s, l, '\n')
 char *acs_strndup(const char *s, size_t n);
 size_t char_to_nul(char *s, size_t l, char c);
-int iscomment(const char *s);
 int acs_snprintf(char *s, size_t n, const char *fmt, ...);
 int acs_vsnprintf(char *s, size_t n, const char *fmt, va_list ap);
 int acs_vasprintf(char **s, const char *fmt, va_list ap);

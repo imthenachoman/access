@@ -113,8 +113,6 @@ void blame(const char *f, ...)
 		if (custom_blame_str) pfree(s);
 	}
 
-	close_conf();
-
 	if (!noblame) {
 		/* This is where I insult invoker */
 		block_tty(&ttyinfo, 1);

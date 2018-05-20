@@ -116,7 +116,7 @@ flagtype execute_rule_match(void)
 {
 	static char *match_tmp, *match_spath;
 	char *match_srcspec, *match_dstspec, *match_flgspec, *match_cmdpat;
-	char *ln;
+	char *ln, *lnarg;
 	char *s, *d, *t;
 	int x, X;
 	const char *tp;
@@ -139,58 +139,97 @@ flagtype execute_rule_match(void)
  * Parse a line of format:
  * "[srcusr]:[srcgrp:srcgrps,srcgrps,...] [dstusr,dsteusr]:[dstgrp,dstegrp]:[dstgrps,dstgrps,...] flag,flag,... cmdline ..."
  */
-
+_again:
 	ln = get_conf_line();
-	if (!ln) return -1;
+	if (!ln) {
+		if (free_conf()) goto _again;
+		return -1;
+	}
+
+	if (*ln == '%') {
+		lnarg = acs_strchr(ln, ' ');
+		if (!lnarg) goto _again;
+		*lnarg = 0; lnarg++;
+	}
+	else lnarg = ln;
 
 	pfree(trigline); trigline = acs_strdup(ln);
 
+	if (!strcmp(ln, "%inc")) {
+		char **wv, **ss, **dd, *tt;
+		size_t sz;
+
+		wv = read_match_dir(lnarg);
+		if (!wv) goto _again;
+		sz = DYN_ARRAY_SZ(wv);
+
+		/*
+		 * Reverse string pointers.
+		 * This is needed so config_stack items ontop are in
+		 * same order as read_match_dir returns them.
+		 */
+		ss = wv;
+		dd = wv + sz - 1;
+		while (ss < dd) {
+			tt = *ss;
+			*ss = *dd;
+			*dd = tt;
+			ss++; dd--;
+		}
+
+		for (a = 0; a < sz; a++) {
+			if (!open_conf(wv[a])) xerror("%s", wv[a]);
+		}
+
+		free_match_dir(wv);
+		goto _again;
+	}
+
 	/* parse additional %set/%unset lines for flags that could not be fit into match_flgspec because of spaces */
-	if (!strncmp(ln, "%set ", 5)) {
-		set_variable(ln+5, 0);
+	if (!strcmp(ln, "%set")) {
+		set_variable(lnarg, 0);
 		return 0;
 	}
-	if (!strncmp(ln, "%unset ", 7)) {
-		unset_variable(ln+7);
+	if (!strcmp(ln, "%unset")) {
+		unset_variable(lnarg);
 		return 0;
 	}
 
 	/* parse local environment variables settings */
-	if (!strncmp(ln, "%setenv ", 8)) {
-		s = acs_strnchr(ln+8, '=', ACS_ALLOC_MAX);
+	if (!strcmp(ln, "%setenv")) {
+		s = acs_strnchr(lnarg, '=', ACS_ALLOC_MAX);
 		if (!s) return 0;
-		*s = 0;
+		*s = 0; s++;
 
-		if (is_envvar_exists(ln+8, EVC_CONF_UNSET)) return 0;
+		if (is_envvar_exists(lnarg, EVC_CONF_UNSET)) return 0;
 
 		if (is_super_user()
-		&& (is_envvar_exists(ln+8, EVC_OPTE_SET)
-		|| is_envvar_exists(ln+8, EVC_OPTE_UNSET))) return 0;
+		&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+		|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) return 0;
 
-		add_envvar(ln+8, s+1, EVC_CONF_SET);
+		add_envvar(lnarg, s, EVC_CONF_SET);
 		return 0;
 	}
-	if (!strncmp(ln, "%delenv ", 8)) {
+	if (!strcmp(ln, "%delenv")) {
 		if (is_super_user()
-		&& (is_envvar_exists(ln+8, EVC_OPTE_SET)
-		|| is_envvar_exists(ln+8, EVC_OPTE_UNSET))) return 0;
+		&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+		|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) return 0;
 
-		delete_envvars(ln+8, EVC_CONF_SET, 1);
-		delete_envvars(ln+8, EVC_CONF_UNSET, 1);
+		if (builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, lnarg, 0))
+			return 0;
+
+		delete_envvars(lnarg, EVC_KEEP_SET, 1);
+		delete_envvars(lnarg, EVC_CONF_SET, 1);
+		delete_envvars(lnarg, EVC_CONF_UNSET, 1);
 		return 0;
 	}
-	if (!strncmp(ln, "%unsetenv ", 10)) {
+	if (!strcmp(ln, "%unsetenv")) {
 		if (is_super_user()
-		&& (is_envvar_exists(ln+10, EVC_OPTE_SET)
-		|| is_envvar_exists(ln+10, EVC_OPTE_UNSET))) return 0;
+		&& (is_envvar_exists(lnarg, EVC_OPTE_SET)
+		|| is_envvar_exists(lnarg, EVC_OPTE_UNSET))) return 0;
 
-		delete_envvars(ln+10, EVC_CONF_SET, 1);
-		add_envvar(ln+10, NULL, EVC_CONF_UNSET);
-		return 0;
-	}
-	if (!strncmp(ln, "%unkeepenv ", 11)) {
-		if (!builtin_envvar_enable(trusted_envvars, trusted_envvars_sz, ln+11, 0))
-			delete_envvars(ln+11, EVC_KEEP_SET, 1);
+		delete_envvars(lnarg, EVC_CONF_SET, 1);
+		add_envvar(lnarg, NULL, EVC_CONF_UNSET);
 		return 0;
 	}
 

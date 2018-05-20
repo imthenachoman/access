@@ -32,7 +32,6 @@ static char no_error_str[] = "no error information";
 
 void acs_do_exit(int status)
 {
-	close_conf();
 	release_lockfile();
 	block_tty(&ttyinfo, 0);
 	if (ttyinfo.fd != -1) put_tty(&ttyinfo);

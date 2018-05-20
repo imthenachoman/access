@@ -390,6 +390,8 @@ void preset_fsa_full(struct fmtstr_args **fsa, size_t *nr_fsa)
 	APPEND_FSA(tfsa, nr_tfsa, "hashbang", 0, "%s", hashbang);
 	APPEND_FSA(tfsa, nr_tfsa, "flags", 0, "%s", trigflags);
 	APPEND_FSA(tfsa, nr_tfsa, "line", 0, "%s", trigline);
+	APPEND_FSA(tfsa, nr_tfsa, "cfgfile", 0, "%s", get_cur_conf_name());
+	APPEND_FSA(tfsa, nr_tfsa, "cfgline", sizeof(int), "%u", pget_cur_conf_lnum());
 	APPEND_FSA(tfsa, nr_tfsa, "pid", sizeof(pid_t), "%u", &ourpid);
 	APPEND_FSA(tfsa, nr_tfsa, "ppid", sizeof(pid_t), "%u", &parentpid);
 	APPEND_FSA(tfsa, nr_tfsa, "progname", 0, "%s", PROGRAM_NAME);

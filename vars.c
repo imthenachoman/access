@@ -45,7 +45,6 @@ void *access_memory_pool;
 
 pid_t ourpid, parentpid;
 char *timefmt, *logfmt;
-FILE *conffile;
 flagtype suflags, argflags, notargflags;
 char *execname;
 char *spath, *supath, *logpath;

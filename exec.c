@@ -62,7 +62,6 @@ int forkexec(int vp, const char *path, char *const argv[], char *const envp[], p
 		case 0:
 			if (pfd) close(pfd[0]);
 			clear_environ();
-			close_conf();
 			close(epfd[0]);
 			if (vp) x = xexecvpe(path, argv, envp);
 			else x = execve(path, argv, envp);

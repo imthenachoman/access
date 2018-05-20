@@ -60,6 +60,7 @@
 #ifdef SHADOW_SUPPORT
 #include <shadow.h>
 #endif
+#include <dirent.h>
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>

@@ -1,4 +1,4 @@
-.Dd 19May2018
+.Dd 20May2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -47,6 +47,14 @@ understands:
 Special
 .Dq %rules
 keyword explicitly breaks parsing of defaults and starts parsing rules section from next line. This is needed if you have settings which share the invisible defaults-rules border. Without it, your possibly first rule specific settings will apply to defaults instead.
+
+Inside rules section a
+.Dq %inc
+is accepted: it includes other configuration files and accepts wildcards. Thus,
+.Dq %inc /etc/access.d/*.conf
+instructs access to include all another rules from
+.Pa /etc/access.d
+directory.
 
 Each specification accepts one or more required arguments of different syntax. The syntax for these arguments is described later in this manual. Arguments are divided by spaces.
 
@@ -612,7 +620,13 @@ list members, so that each n-th member from gids list matches n-th member from g
 : contains a copy of triggered rule flags part
 .It
 .Ev ACCESS_LINE
-: contains a copy of triggered rule
+: contains a copy of triggered rule line
+.It
+.Ev ACCESS_CONF
+: contains full filesystem path to a currently parsed config file
+.It
+.Ev ACCESS_LINE_NUMBER
+: contains current rule line number
 .It
 .Ev ACCESS_MATCH_TYPE
 : contains a fixed string of match algorithm used to detect the rule:
@@ -691,11 +705,6 @@ environment variable in target user environment.
 : contains a passwd db resolved path to shell executable which runs for user on login.
 .Op Fl I
 does not affect it's value.
-.It
-.Ev ACCESS_CONF
-: contains full filesystem path to
-.Nm .
-This string is guaranteed to be static if same access binary is invoked.
 .It
 .Ev ACCESS_LOG
 : if access logs to dedicated logfile, then it will contain full path to that logfile. This usually comes from
@@ -1425,6 +1434,14 @@ Replaced with hashbang value, if access was invoked from script header. If no ha
 .It
 .Va %{line}
 Replaced with full invoked access rule string.
+
+.It
+.Va %{cfgfile}
+Replaced with full path to a currently parsed config file
+
+.It
+.Va %{cfgline}
+Replaced with a currently parsed rule line number
 
 .It
 .Va %{flags}

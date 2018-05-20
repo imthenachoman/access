@@ -104,3 +104,62 @@ int is_abs_rel(const char *progname)
 
 	return 0;
 }
+
+char **read_match_dir(const char *pattern)
+{
+	char **r;
+	size_t sz;
+	char *sp, *s, *pat;
+	DIR *dp;
+	struct dirent *de;
+
+	sp = acs_strdup(pattern);
+
+	/* Poor man's dirname(3) */
+	pat = sp+acs_strnlen(sp, ACS_ALLOC_MAX);
+	while (pat-sp > 0) {
+		pat--;
+		if (*pat == '/') {
+			*pat = 0;
+			pat++;
+			break;
+		}
+	}
+
+	dp = opendir(sp);
+	if (!dp) {
+		pfree(sp);
+		return NULL;
+	}
+
+	r = NULL;
+	s = NULL;
+	while ((de = readdir(dp))) {
+		if (!strcmp(de->d_name, ".")
+		|| !strcmp(de->d_name, "..")) continue;
+
+		if (match_pattern_type(pat, de->d_name, MATCH_FNMATCH)) {
+			sz = DYN_ARRAY_SZ(r);
+			r = acs_realloc(r, (sz+1) * sizeof(char *));
+			acs_asprintf(&s, "%s/%s", sp, de->d_name);
+			r[sz] = acs_strdup(s);
+		}
+	}
+
+	pfree(sp);
+	pfree(s);
+	closedir(dp);
+	if (!r) seterr("no directory items");
+	return r;
+}
+
+void free_match_dir(char **r)
+{
+	size_t sz, x;
+
+	sz = DYN_ARRAY_SZ(r);
+	for (x = 0; x < sz; x++) {
+		pfree(r[x]);
+	}
+	pfree(r);
+}
