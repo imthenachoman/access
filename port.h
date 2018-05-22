@@ -113,7 +113,6 @@ void *acs_memmem(const void *hs, size_t hsn, const void *ne, size_t nen);
 extern char *acs_optarg;
 extern int acs_optind, acs_opterr, acs_optopt;
 int acs_getopt(int argc, char * const argv[], const char *optstring);
-int acs_getgrouplist(const char *user, gid_t gid, gid_t *groups, int *ngroups);
 int acs_mbtowc(wchar_t *wc, const char *src, size_t n);
 void acs_cfmakeraw(struct termios *t);
 char *acs_strtok_r(char *s, const char *sep, char **p);

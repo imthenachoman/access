@@ -89,7 +89,7 @@ int getugroups(const char *name, gid_t gr, gid_t *grps, int *ngrps)
 		if (p) name = p->pw_name;
 		else seterr("no valid entry for this uid");
 	}
-	return acs_getgrouplist(name, gr, grps, ngrps);
+	return getgrouplist(name, gr, grps, ngrps);
 }
 
 char *shellbyname(const char *name)
