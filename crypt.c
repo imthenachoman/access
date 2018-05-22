@@ -43,38 +43,37 @@
 #define SK_U_PFX "$U$"
 #define SK1024_CONF "/etc/skcrypt.conf"
 
-unsigned int sk_saltlen = SALTLEN;
-unsigned int sk_datalen = DATALEN;
-unsigned int sk_offset = OFFSET;
-unsigned int sk_passes = PASSES;
-char sk_localid[64];
+static unsigned int sk_saltlen = SALTLEN;
+static unsigned int sk_datalen = DATALEN;
+static unsigned int sk_offset = OFFSET;
+static unsigned int sk_passes = PASSES;
+static char sk_localid[64];
 
-int skein_configured;
-
-int read_skein_config(void)
+static void read_skein_config(void)
 {
-	FILE *f;
-	char data[256];
+	int fd;
+	void *skconf;
 	char *s, *d;
 
-	if (skein_configured) return 1;
+	fd = open(SK1024_CONF, O_RDONLY);
+	if (fd == -1) return;
 
-	f = fopen(SK1024_CONF, "r");
-	if (!f) return 0;
+	skconf = load_config(fd);
+	if (!skconf) {
+		close(fd);
+		return;
+	}
+	close(fd);
 
-	s = data;
-	while (fgets(data, 256, f)) {
-		if (data[0] == '\n' || data[0] == '#') continue;
-		data[acs_strnlen(data, 256)-1] = '\0';
-
+	while ((s = get_config_line(skconf))) {
 		d = acs_strchr(s, '=');
 		if (!d) continue;
 
 		/* old config support, strip trailing space of option */
-		if (d-s && *(d-1) == ' ') *(d-1) = '\0';
+		if (d-s && *(d-1) == ' ') *(d-1) = 0;
 		/* old config support, strip leading space of argument */
-_aga:		*d = '\0'; d++;
-		if (*d == ' ') goto _aga;
+_trim:		*d = 0; d++;
+		if (*d == ' ') goto _trim;
 
 		if (!strcmp(s, "passes"))
 			sk_passes = atoi(d);
@@ -88,7 +87,7 @@ _aga:		*d = '\0'; d++;
 			sk_datalen = atoi(d);
 	}
 
-	fclose(f);
+	free_config(skconf);
 
 	if (sk_passes == 0 || sk_passes >= PASSES_MAX)
 		sk_passes = PASSES;
@@ -101,8 +100,6 @@ _aga:		*d = '\0'; d++;
 
 	if (sk_datalen == 0 || sk_datalen >= DATALEN_MAX)
 		sk_datalen = DATALEN;
-
-	return 1;
 }
 
 char *acs_crypt_r(const char *clear, const char *salt, char *output)
@@ -113,9 +110,7 @@ char *acs_crypt_r(const char *clear, const char *salt, char *output)
 	int slen = 0, b64l, x;
 	char *p = output;
 
-	if (!read_skein_config()
-	&& !is_super_user())
-		goto _fail; /* do not lie with false hash */
+	read_skein_config();
 
 	/* Process salt */
 	if (salt[0] == SK_U_PFX[0] && salt[1] == SK_U_PFX[1] && salt[2] == SK_U_PFX[2]) {

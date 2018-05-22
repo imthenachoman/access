@@ -311,10 +311,6 @@ void free_config(void *config);
 
 /* crypt.c */
 
-extern char sk_localid[64];
-extern unsigned int sk_saltlen, sk_datalen, sk_offset, sk_passes;
-extern int skein_configured;
-int read_skein_config(void);
 char *acs_crypt_r(const char *clear, const char *salt, char *output);
 char *acs_crypt(const char *key, const char *salt);
 

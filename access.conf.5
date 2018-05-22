@@ -1,4 +1,4 @@
-.Dd 20May2018
+.Dd 22May2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -433,46 +433,6 @@ Note that disagreement means failure and likely result in log file entry.
 
 .It Va nowarnusr
 Do not warn invoker about what to be done.
-
-.It Va sk_localid=str
-Specify
-.Sq localid
-for the internal Skein engine (if compiled in), as if it was specified in
-.Pa /etc/skcrypt.conf .
-Value specified here overrides anything that comes from
-.Pa /etc/skcrypt.conf .
-
-.It Va sk_offset=int
-Specify
-.Sq offset
-for the internal Skein engine (if compiled in), as if it was specified in
-.Pa /etc/skcrypt.conf .
-Value specified here overrides anything that comes from
-.Pa /etc/skcrypt.conf .
-
-.It Va sk_passes=int
-Specify
-.Sq passes
-for the internal Skein engine (if compiled in), as if it was specified in
-.Pa /etc/skcrypt.conf .
-Value specified here overrides anything that comes from
-.Pa /etc/skcrypt.conf .
-
-.It Va sk_saltlen=int
-Specify
-.Sq saltlen
-for the internal Skein engine (if compiled in), as if it was specified in
-.Pa /etc/skcrypt.conf .
-Value specified here overrides anything that comes from
-.Pa /etc/skcrypt.conf .
-
-.It Va sk_datalen=int
-Specify
-.Sq datalen
-for the internal Skein engine (if compiled in), as if it was specified in
-.Pa /etc/skcrypt.conf .
-Value specified here overrides anything that comes from
-.Pa /etc/skcrypt.conf .
 
 Note that some
 .Dq %set

@@ -587,38 +587,6 @@ void set_variable(const char *spec, int init)
 		return;
 	}
 
-#ifdef WITH_SKEIN_CRYPT
-	if (!strcmp(s, "sk_localid")) {
-		acs_strlcpy(sk_localid, d, sizeof(sk_localid));
-		skein_configured = 1;
-		return;
-	}
-
-	if (!strcmp(s, "sk_offset")) {
-		sk_offset = atoi(d);
-		skein_configured = 1;
-		return;
-	}
-
-	if (!strcmp(s, "sk_passes")) {
-		sk_passes = atoi(d);
-		skein_configured = 1;
-		return;
-	}
-
-	if (!strcmp(s, "sk_saltlen")) {
-		sk_saltlen = atoi(d);
-		skein_configured = 1;
-		return;
-	}
-
-	if (!strcmp(s, "sk_datalen")) {
-		sk_datalen = atoi(d);
-		skein_configured = 1;
-		return;
-	}
-#endif
-
 	if (!strcmp(s, "pw")) {
 		pfree(linepw);
 		linepw = acs_strdup(d);
@@ -797,18 +765,6 @@ void unset_variable(const char *name)
 		pfree(logfmt);
 		return;
 	}
-
-#ifdef WITH_SKEIN_CRYPT
-	if (!strncmp(name, "sk_", 3)
-	&& (!strcmp(name+3, "localid")
-	|| !strcmp(name+3, "offset")
-	|| !strcmp(name+3, "passes")
-	|| !strcmp(name+3, "saltlen")
-	|| !strcmp(name+3, "datalen"))) {
-		skein_configured = 0;
-		return;
-	}
-#endif
 
 	if (!strcmp(name, "pw")) {
 		pfree(linepw);
