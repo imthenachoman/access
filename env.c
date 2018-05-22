@@ -28,6 +28,18 @@
 
 #include "access.h"
 
+void acs_setenv(const char *name, const char *value, int overwrite)
+{
+	if (setenv(name, value, overwrite) == -1)
+		xerror("setenv");
+}
+
+void acs_unsetenv(const char *name)
+{
+	if (unsetenv(name) == -1)
+		xerror("unsetenv");
+}
+
 void clear_environ(void)
 {
 	char **env = environ;
@@ -188,7 +200,7 @@ static void kill_real_envvar(const char *dname, int match_wildcards)
 			if (f) {
 				acs_strlcpy(t, *env, ACS_ALLOC_SMALL);
 				if (s) *s = '=';
-				unsetenv(t);
+				acs_unsetenv(t);
 				/* start over */
 				env = environ;
 				continue;
@@ -266,12 +278,12 @@ static void set_envvars(flagtype class, int noparse)
 		if (envvars[x].class != class) continue;
 
 		if (!envvars[x].value) {
-			setenv(envvars[x].name, "", 1);
+			acs_setenv(envvars[x].name, "", 1);
 			continue;
 		}
 
 		if (noparse) {
-			setenv(envvars[x].name, envvars[x].value, 1);
+			acs_setenv(envvars[x].name, envvars[x].value, 1);
 		}
 		else {
 			if (!fsa) preset_fsa_full(&fsa, &nr_fsa);
@@ -287,7 +299,7 @@ static void set_envvars(flagtype class, int noparse)
 
 			if (fst.trunc == 0) {
 				parse_escapes(t, ACS_ALLOC_MAX);
-				setenv(envvars[x].name, t, 1);
+				acs_setenv(envvars[x].name, t, 1);
 			}
 			else xexits("%s: value too long.", envvars[x].name);
 		}
@@ -423,26 +435,26 @@ void set_basic_envvars(void)
 	char *s;
 
 	if (!isflag(argflags, ARG_P)) {
-		setenv("USER", dstusr, 1);
-		setenv("LOGNAME", dstusr, 1);
+		acs_setenv("USER", dstusr, 1);
+		acs_setenv("LOGNAME", dstusr, 1);
 		acs_asprintf(&t, "%u", dstuid);
-		setenv("UID", t, 1);
-		setenv("SHELL", dstusrshell, 1);
-		setenv("HOME", dstusrdir, 1);
+		acs_setenv("UID", t, 1);
+		acs_setenv("SHELL", dstusrshell, 1);
+		acs_setenv("HOME", dstusrdir, 1);
 	}
 	else {
-		setenv("USER", srcusr, 1);
-		setenv("LOGNAME", srcusr, 1);
+		acs_setenv("USER", srcusr, 1);
+		acs_setenv("LOGNAME", srcusr, 1);
 		acs_asprintf(&t, "%u", srcuid);
-		setenv("UID", t, 1);
+		acs_setenv("UID", t, 1);
 		s = shellbyname(srcusr);
-		setenv("SHELL", s, 1);
+		acs_setenv("SHELL", s, 1);
 		s = udirbyname(srcusr);
-		setenv("HOME", s, 1);
+		acs_setenv("HOME", s, 1);
 	}
 
-	setenv("PWD", dstdir, 1); /* bash complains */
-	setenv("PATH", get_spath(), 1);
+	acs_setenv("PWD", dstdir, 1); /* bash complains */
+	acs_setenv("PATH", get_spath(), 1);
 }
 
 void set_user_environ(void)

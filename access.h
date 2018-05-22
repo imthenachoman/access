@@ -350,6 +350,8 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 
 struct fmtstr_args;
 
+void acs_setenv(const char *name, const char *value, int overwrite);
+void acs_unsetenv(const char *name);
 void clear_environ(void);
 int is_envvar_exists(const char *name, flagtype class);
 void add_envvar(const char *name, const char *value, flagtype class);

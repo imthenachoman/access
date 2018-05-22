@@ -164,7 +164,8 @@ static char *argv_find_next(int argc, char *const *argv, const char *str, int of
 int su_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, gid_t *srcgids)
 {
 	int c;
-	char *s;
+	void *cfg;
+	char *s, *d, *t;
 
 	set_progname("su");
 
@@ -190,9 +191,39 @@ int su_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, gid_t
 
 	signal(SIGCHLD, SIG_DFL); /* see access's main, which ignores all signals. */
 
-	s = getenv("ACCESS_PROGNAME");
-	access_name = acs_strdup(s ? s : PROGRAM_NAME);
+	c = open(SU_PATH_CONF, O_RDONLY);
+	if (c != -1) {
+		cfg = load_config(c);
+		if (!cfg) {
+			close(c);
+			goto _cfgout;
+		}
+		close(c);
 
+		while ((s = get_config_line(cfg))) {
+			d = strchr(s, ' ');
+			if (!d) continue;
+			*d = 0; d++;
+
+			if (!strcmp(s, "%setenv")) {
+				t = strchr(d, '=');
+				if (!t) continue;
+				*t = 0; t++;
+				acs_setenv(d, t, 1);
+			}
+			else if (!strcmp(s, "%unsetenv")) {
+				acs_unsetenv(d);
+			}
+			else if (!strcmp(s, "%call")) {
+				access_name = acs_strdup(d);
+			}
+		}
+
+		free_config(cfg);
+	}
+
+_cfgout:
+	if (!access_name) access_name = acs_strdup(PROGRAM_NAME);
 	access_path = find_access(access_name);
 	if (!access_path) xexits("%s was not found.", access_name);
 

@@ -652,7 +652,7 @@ static int daccess_server_child(int clfd, int argc, char **argv)
 		if (!d) goto _badenv;
 		*d = 0;
 		d++;
-		setenv(s, d, 1);
+		acs_setenv(s, d, 1);
 _badenv:	pfree(s);
 	}
 	daccess_send_ack(clfd);

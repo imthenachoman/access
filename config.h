@@ -24,6 +24,9 @@
 #define LOCKFILE_PATH "/var/run/%{srcuid}." PROGRAM_NAME /* format templates are accepted. */
 /* comment this if you do not want to include su(1) builtin compatibility program */
 #define WITH_SU_PROG
+#ifdef WITH_SU_PROG
+#define SU_PATH_CONF "/etc/su.access.conf"
+#endif
 /* include "acsmatch" program: simple pattern to string matcher */
 #define WITH_ACSMATCH_PROG
 /* include "acsmkpwd" program: generate s_crypt() hashes */
