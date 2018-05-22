@@ -63,10 +63,10 @@ char *get_spath(void)
 	return spath;
 }
 
-int cfg_permission(const struct stat *st)
+int cfg_permission(const struct stat *st, int dir)
 {
 	if (st->st_uid != 0 || st->st_gid != 0) return 0;
-	if (isflag(st->st_mode, S_IXUSR)) return 0; /* --x|---|--- */
+	if (!dir && isflag(st->st_mode, S_IXUSR)) return 0; /* --x|---|--- */
 	if (isflag(st->st_mode, S_IRGRP)) return 0; /* ---|r--|--- */
 	if (isflag(st->st_mode, S_IWGRP)) return 0; /* ---|-w-|--- */
 	if (isflag(st->st_mode, S_IXGRP)) return 0; /* ---|--x|--- */

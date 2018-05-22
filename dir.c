@@ -112,6 +112,7 @@ char **read_match_dir(const char *pattern)
 	char *sp, *s, *pat;
 	DIR *dp;
 	struct dirent *de;
+	struct stat st;
 
 	sp = acs_strdup(pattern);
 
@@ -124,6 +125,15 @@ char **read_match_dir(const char *pattern)
 			pat++;
 			break;
 		}
+	}
+
+	if (lstat(sp, &st) == -1) {
+		pfree(sp);
+		return NULL;
+	}
+	if (!cfg_permission(&st, 1)) {
+		pfree(sp);
+		return NULL;
 	}
 
 	dp = opendir(sp);

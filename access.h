@@ -499,7 +499,7 @@ int is_super_user(void);
 int needs_super_user(void);
 int is_setuid(void);
 char *get_spath(void);
-int cfg_permission(const struct stat *st);
+int cfg_permission(const struct stat *st, int dir);
 void blame(const char *f, ...);
 void closefrom(int fd);
 int runaway(void);

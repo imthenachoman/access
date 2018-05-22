@@ -180,7 +180,7 @@ int open_conf(const char *path)
 	void *cfg;
 
 	if (lstat(path, &st) == -1) return 0;
-	if (!cfg_permission(&st)) {
+	if (!cfg_permission(&st, 0)) {
 		seterr("wrong mode");
 		return 0;
 	}
