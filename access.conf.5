@@ -1,4 +1,4 @@
-.Dd 22May2018
+.Dd 23May2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -350,12 +350,11 @@ Detach tty from target program, but still accept input. Prevents tty hijacking o
 .It Va nottydt
 Do not detach tty from target program.
 
-.It Va minenv
+.It Va clearenv
 Clear invoker provided environment and repopulate it with sensitive variables.
 
 This is default.
 
-.It Va nominenv
 .It Va userenv
 Do not clear invoker provided environment and pass it over. However, replace or set sensitive variables.
 

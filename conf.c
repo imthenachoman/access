@@ -242,8 +242,8 @@ void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype
 #ifdef SYSLOG_SUPPORT
 		if (!strcmp(s, "syslog")) xsetflag(&suflags_l, FLG_SYSLOG);
 #endif
-		if (!strcmp(s, "minenv")) xsetflag(&suflags_l, FLG_CLRENV);
-		if (!strcmp(s, "nominenv") || !strcmp(s, "userenv")) xunsetflag(&suflags_l, FLG_CLRENV);
+		if (!strcmp(s, "clearenv")) xsetflag(&suflags_l, FLG_CLRENV);
+		if (!strcmp(s, "userenv")) xunsetflag(&suflags_l, FLG_CLRENV);
 		if (!strcmp(s, "keepenv")) xsetflag(&argflags_l, ARG_P);
 		if (!strcmp(s, "euid")) xunsetflag(&suflags_l, FLG_NOEUID);
 		if (!strcmp(s, "noeuid")) xsetflag(&suflags_l, FLG_NOEUID);
