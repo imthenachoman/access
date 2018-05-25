@@ -75,7 +75,7 @@ size_t acs_strltrep(char *str, size_t n, int *nr_reps, const char *from, const c
 		else if (tl < fl) {
 			memcpy(s, to, tl);
 			memmove(s+tl, s+fl, sl-(s-str)-fl);
-			memset(s+(sl-(s-str)-fl+tl), 0, fl);
+			acs_memzero(s+(sl-(s-str)-fl+tl), fl);
 			sl -= (fl-tl);
 			if (sl < tl) break;
 		}

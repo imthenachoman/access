@@ -185,7 +185,7 @@ struct pidcreds {
 static void freepidcreds(struct pidcreds *pcred)
 {
 	if (pcred->gids) pfree(pcred->gids);
-	memset(pcred, 0, sizeof(struct pidcreds));
+	acs_memzero(pcred, sizeof(struct pidcreds));
 }
 
 static int getpidcreds(pid_t pid, struct pidcreds *pcred)

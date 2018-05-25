@@ -437,6 +437,6 @@ _findanother:	s = memchr(str, *urm, max);
 		}
 		urm++;
 	}
-	memset(str+(max-ntail), 0, ntail);
+	acs_memzero(str+(max-ntail), ntail);
 	return max-ntail;
 }
