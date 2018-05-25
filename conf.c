@@ -244,7 +244,7 @@ void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype
 #endif
 		if (!strcmp(s, "clearenv")) xsetflag(&suflags_l, FLG_CLRENV);
 		if (!strcmp(s, "userenv")) xunsetflag(&suflags_l, FLG_CLRENV);
-		if (!strcmp(s, "keepenv")) xsetflag(&argflags_l, ARG_P);
+		if (!strcmp(s, "keepenv")) xsetflag(&suflags_l, FLG_KEEPENV);
 		if (!strcmp(s, "euid")) xunsetflag(&suflags_l, FLG_NOEUID);
 		if (!strcmp(s, "noeuid")) xsetflag(&suflags_l, FLG_NOEUID);
 		if (!strcmp(s, "egid")) xunsetflag(&suflags_l, FLG_NOEGID);
@@ -300,8 +300,8 @@ void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype
 		}
 		if (!is_super_user() && !strcmp(s, "nologin")) xnotargflag(1, &notargflags_l, ARG_l);
 
-		if (!strcmp(s, "ttydt")) xsetflag(&argflags_l, ARG_B);
-		if (!strcmp(s, "nottydt")) xunsetflag(&argflags_l, ARG_B);
+		if (!strcmp(s, "ttydt")) xsetflag(&suflags_l, FLG_TTYDETACH);
+		if (!strcmp(s, "nottydt")) xunsetflag(&suflags_l, FLG_TTYDETACH);
 		if (!strcmp(s, "nolock")) xsetflag(&suflags_l, FLG_NOLOCK);
 		if (!strcmp(s, "warnusr")) xsetflag(&suflags_l, FLG_WARNUSR);
 		if (!strcmp(s, "nowarnusr")) xunsetflag(&suflags_l, FLG_WARNUSR);

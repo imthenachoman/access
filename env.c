@@ -434,7 +434,7 @@ void set_basic_envvars(void)
 	static char *t;
 	char *s;
 
-	if (!isflag(argflags, ARG_P)) {
+	if (!isflag(suflags, FLG_KEEPENV) && !isflag(argflags, ARG_P)) {
 		acs_setenv("USER", dstusr, 1);
 		acs_setenv("LOGNAME", dstusr, 1);
 		acs_asprintf(&t, "%u", dstuid);
@@ -462,7 +462,8 @@ void set_user_environ(void)
 	save_trusted_envvars();
 
 	if ((isflag(argflags, ARG_l) || isflag(argflags, ARG_E))
-	|| (!is_super_user() && isflag(suflags, FLG_CLRENV) && !isflag(argflags, ARG_P)))
+	|| (!is_super_user() && isflag(suflags, FLG_CLRENV)
+	&& (!isflag(suflags, FLG_KEEPENV) && !isflag(argflags, ARG_P))))
 		clear_environ();
 
 	set_envvars(EVC_OPTE_SET, 1);

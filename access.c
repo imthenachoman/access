@@ -1011,9 +1011,11 @@ _bypassaudit:
 
 	if (isflag(argflags, ARG_l)) acs_chdir(dstdir, is_super_user());
 
-	if (isflag(argflags, ARG_B)) ttydetach();
+	if (isflag(suflags, FLG_TTYDETACH)
+	|| isflag(argflags, ARG_B)) ttydetach();
 	put_tty(&ttyinfo);
-	if (!(is_super_user() && minfd == -1)) closefrom(minfd);
+	if (!(is_super_user() && minfd == -1))
+		close_fd_range(minfd, (maxfd == -1) ? sysconf(_SC_OPEN_MAX) : maxfd);
 	release_lockfile();
 #ifdef WITH_RESETRLIMITS
 	restore_user_limits();

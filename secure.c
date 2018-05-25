@@ -234,10 +234,10 @@ _out:
 }
 #undef blamesetenv
 
-void closefrom(int fd)
+void close_fd_range(int startfd, int endfd)
 {
-	int x, max = (maxfd == -1) ? sysconf(_SC_OPEN_MAX) : maxfd;
-	for (x = fd; x < max; x++) close(x);
+	int x;
+	for (x = startfd; x < endfd; x++) close(x);
 }
 
 int runaway(void)

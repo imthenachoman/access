@@ -70,10 +70,10 @@
 #endif
 #define FLG_LOGFAIL 64 /* even if nolog, failed attempts still logged */
 #define FLG_FALSE 128 /* This flag will force fail status */
-/* 256 */
+#define FLG_TTYDETACH 256 /* securely detach tty */
 /* 512 */
 #define FLG_CLRENV 1024 /* reset to minimal environment */
-/* 2048 */
+#define FLG_KEEPENV 2048 /* try to preserve pristine environment */
 #define FLG_NOEUID 4096
 #define FLG_NOEGID 8192
 #define FLG_USRONLY 0x4000 /* allow to specify only real target user */
@@ -504,7 +504,7 @@ int is_setuid(void);
 char *get_spath(void);
 int cfg_permission(const struct stat *st, int dir);
 void blame(const char *f, ...);
-void closefrom(int fd);
+void close_fd_range(int startfd, int endfd);
 int runaway(void);
 void ttydetach(void);
 int grab_tty(struct tty_info *ttyi);
