@@ -872,6 +872,8 @@ _bypass: /* I am already superuser */
 		int pfd[2];
 		char **targv, **tenvp;
 
+		if (isflag(argflags, ARG_n)) blame("auditor may ask for password");
+
 		if (pipe(pfd) != 0) xerror("pipe for %s failed", auditcmd);
 
 		s = T = NULL;
