@@ -293,6 +293,7 @@ void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype
 				case 'v': xnotargflag(notarg, &notargflags_l, ARG_v); break;
 				case 'w': xnotargflag(notarg, &notargflags_l, ARG_w); break;
 				case 'N': xnotargflag(notarg, &notargflags_l, ARG_N); break;
+				case 'W': xnotargflag(notarg, &notargflags_l, ARG_W); break;
 				case 'l': xnotargflag(notarg, &notargflags_l, ARG_l); break;
 				default: break;
 			}

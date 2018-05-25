@@ -360,9 +360,9 @@ int main(int argc, char **argv)
 
 /* remaining s_getopt chars: */
 /* 'ijkmoqrz' */
-/* 'HJKMOWYZ' */
+/* 'HJKMOYZ' */
 	acs_optind = 1;
-	while ((c = acs_getopt(argc, argv, "u:U:g:G:s:S:e:Ec:C:a:AbBfF:hIlL:nNPQ:R:d:DtTpvVwxXy")) != -1) {
+	while ((c = acs_getopt(argc, argv, "u:U:g:G:s:S:e:Ec:C:a:AbBfF:hIlL:nNPQ:R:d:DtTpvVwWxXy")) != -1) {
 		switch (c) {
 			case 'b':
 				setflag(&argflags, ARG_b);
@@ -624,6 +624,9 @@ int main(int argc, char **argv)
 				break;
 			case 'y':
 				setflag(&argflags, ARG_y);
+				break;
+			case 'W':
+				setflag(&argflags, ARG_W);
 				break;
 			case 'h':
 			default: usage_long_req = 1; break;
@@ -987,6 +990,12 @@ if (schrootdir && chrootdir) {
 
 	if (isflag(suflags, FLG_WARNUSR)
 	|| isflag(argflags, ARG_w)) warnusr();
+
+	/* dry run -- part one: if successive, turn off logs, exit in part two. */
+	if (isflag(argflags, ARG_W)) {
+		unsetflag(&suflags, FLG_LOG);
+		unsetflag(&suflags, FLG_LOGFAIL);
+	}
 	
 	if (isflag(suflags, FLG_LOG)) {
 		if (!write_log_line(NULL)) xerror("writing log entry");
@@ -994,6 +1003,11 @@ if (schrootdir && chrootdir) {
 
 _bypassaudit:
 	free_conf_all();
+
+	/* dry run -- part two (for superuser). */
+	if (isflag(argflags, ARG_W)) {
+		acs_exit(0);
+	}
 
 	if (isflag(argflags, ARG_l)) acs_chdir(dstdir, is_super_user());
 

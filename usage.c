@@ -34,9 +34,9 @@ void usage(void)
 	acs_say("\t[-tTxX] [-e VAR=VAL] [-a argv0] [-c vcmd] [-C minfd]");
 	acs_say("\t[-d chdir] [-F fd] [-L rlimspec] [-Q prio] [-R newroot]");
 #ifdef _ACCESS_VERSION
-	acs_say("\t[-AbBDEfIlnNpPvVwy] [--] cmdline ...");
+	acs_say("\t[-AbBDEfIlnNpPvVwWy] [--] cmdline ...");
 #else
-	acs_say("\t[-AbBDEfIlnNpPvwy] [--] cmdline ...");
+	acs_say("\t[-AbBDEfIlnNpPvwWy] [--] cmdline ...");
 #endif
 
 	acs_say("run %s with -h to see full help text", progname);
@@ -101,6 +101,7 @@ void usage_long(void)
 	acs_say("  -R dir: chroot into dir");
 	acs_say("  -y: with -b: print background program pid");
 	acs_say("  -w: ask user about what to be run");
+	acs_say("  -W: dry run (do not run command at all)");
 	acs_say("  -v: show more info about what is going to be run and as whom");
 #ifdef _ACCESS_VERSION
 	acs_say("  -V: show version information");

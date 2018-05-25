@@ -1,4 +1,4 @@
-.Dd 13Apr2018
+.Dd 26May2018
 .Dt ACCESS 8
 
 .Sh NAME
@@ -20,7 +20,7 @@
 .Op Fl L Ar rlimspec
 .Op Fl Q Ar prio
 .Op Fl R Ar newroot
-.Op Fl AbBDEfIlnNpPvVwy
+.Op Fl AbBDEfIlnNpPvVwWy
 .Op Ic --
 .Ic cmdline ...
 
@@ -397,6 +397,8 @@ Note that
 .Va nowarnusr
 will not disable this option alone without
 .Va noopt_w .
+.It Fl W
+Dry run -- do nothing, if successful. Do not run target cmdline at all. Note that this does not log anything on success (even if required). On failure however the logging of failed attempt is made as configured. By default this option is privileged.
 .It Fl V
 Show
 .Nm
