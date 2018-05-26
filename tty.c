@@ -53,7 +53,7 @@ int fdgetstring(int fd, char *s, size_t n)
 	size_t l;
 
 	l = (size_t)read(fd, s, n);
-	if (l >= 0 && l != NOSIZE) {
+	if (l != NOSIZE) {
 		if (l > 0 && s[l-1] == '\n') l--;
 		s[l] = 0;
 	}

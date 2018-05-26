@@ -65,7 +65,7 @@ int forkexec(int vp, const char *path, char *const argv[], char *const envp[], p
 			close(epfd[0]);
 			if (vp) x = xexecvpe(path, argv, envp);
 			else x = execve(path, argv, envp);
-			if (x == -1) write(epfd[1], &errno, sizeof(errno));
+			if (x == -1) write(epfd[1], (const void *)&errno, sizeof(errno));
 			close(epfd[1]);
 			if (pfd) close(pfd[1]);
 			exit(127);
@@ -129,7 +129,7 @@ int dexecve(const char *path, char *const argv[], pid_t *pid)
 			open("/dev/null", O_RDWR);
 			close(pfd[0]);
 			if (execve(path, argv, environ) == -1)
-				write(pfd[1], &errno, sizeof(errno));
+				write(pfd[1], (const void *)&errno, sizeof(errno));
 			close(pfd[1]);
 			exit(127);
 
