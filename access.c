@@ -297,9 +297,34 @@ int main(int argc, char **argv)
  * parse opts in protected environment
  */
 #ifdef HAVE_ISSETUGID
-	if (!issetugid()) xexits("is not marked as setuid executable");
+	if (!issetugid()) {
+#ifdef WITH_DACCESS_PROG
+		s = parse_client_conf();
+		if (s) {
+			d = find_access(s);
+			if (!d) goto _notfoundiss;
+			argv[0] = s;
+			if (execv(d, argv) == -1) xerror_status(127, "execv");
+_notfoundiss:		acs_exit(127);
+		}
+#endif
+		xexits("is not marked as setuid executable");
+	}
 #endif
 	if (!runaway()) {
+#ifdef WITH_DACCESS_PROG
+		int sverrno = errno;
+
+		s = parse_client_conf();
+		if (s) {
+			d = find_access(s);
+			if (!d) goto _notfoundrun;
+			argv[0] = s;
+			if (execv(d, argv) == -1) xerror_status(127, "execv");
+_notfoundrun:		acs_exit(127);
+		}
+		errno = sverrno;
+#endif
 		acs_perror("becoming superuser");
 		xexits("is not marked as setuid executable, or otherwise did not\n"
 		"permitted to have it's euid set to be superuser to do it's\n"

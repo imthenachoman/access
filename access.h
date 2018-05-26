@@ -284,6 +284,7 @@ char *build_protected_cmdline(int argc, char **argv);
 char **parse_cmdline(char *p);
 int is_exec(const char *path);
 char *which(const char *spathspec, const char *progname, const char *root);
+char *find_access(const char *name);
 
 /* conf.c */
 
@@ -300,6 +301,9 @@ void readin_default_settings(void);
 void set_variable(const char *spec, int init);
 void unset_variable(const char *name);
 void update_vars(void);
+#ifdef WITH_DACCESS_PROG
+char *parse_client_conf(void);
+#endif
 
 /* confdata.c */
 

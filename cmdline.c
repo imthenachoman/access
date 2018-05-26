@@ -195,3 +195,14 @@ char *which(const char *spathspec, const char *progname, const char *root)
 	pfree(tmp);
 	return NULL;
 }
+
+char *find_access(const char *name)
+{
+	char *r = NULL;
+
+	acs_asprintf(&r, "%s/bin/%s", PREFIX, name ? name : PROGRAM_NAME);
+	if (is_exec(r)) return r;
+
+	pfree(r);
+	return which(spath, name ? name : PROGRAM_NAME, NULL);
+}

@@ -891,3 +891,51 @@ void update_vars(void)
 	UPDATEVAR(sdstdir);
 }
 #undef UPDATEVAR
+
+#ifdef WITH_DACCESS_PROG
+char *parse_client_conf(void)
+{
+	int fd;
+	void *cfg;
+	char *s, *d, *t;
+	char *r = NULL;
+
+	fd = open(CLIENT_PATH_CONF, O_RDONLY);
+	if (fd != -1) {
+		cfg = load_config(fd);
+		if (!cfg) {
+			close(fd);
+			return NULL;
+		}
+		close(fd);
+
+		while ((s = get_config_line(cfg))) {
+			d = strchr(s, ' ');
+			if (!d) continue;
+			*d = 0; d++;
+
+			if (!strcmp(s, "%spath")) {
+				pfree(spath);
+				spath = acs_strdup(d);
+			}
+			else if (!strcmp(s, "%setenv")) {
+				t = strchr(d, '=');
+				if (!t) continue;
+				*t = 0; t++;
+				acs_setenv(d, t, 1);
+			}
+			else if (!strcmp(s, "%unsetenv")) {
+				acs_unsetenv(d);
+			}
+			else if (!strcmp(s, "%call")) {
+				pfree(r);
+				r = acs_strdup(d);
+			}
+		}
+
+		free_config(cfg);
+	}
+
+	return r;
+}
+#endif

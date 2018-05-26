@@ -24,9 +24,6 @@
 #define LOCKFILE_PATH "/var/run/%{srcuid}." PROGRAM_NAME /* format templates are accepted. */
 /* comment this if you do not want to include su(1) builtin compatibility program */
 #define WITH_SU_PROG
-#ifdef WITH_SU_PROG
-#define SU_PATH_CONF "/etc/su.access.conf"
-#endif
 /* include "acsmatch" program: simple pattern to string matcher */
 #define WITH_ACSMATCH_PROG
 /* include "acsmkpwd" program: generate s_crypt() hashes */
@@ -36,6 +33,8 @@
 /* include "daccess" program: daemon to run access if there is no setuid fs support */
 /* #define WITH_DACCESS_PROG */
 #ifdef WITH_DACCESS_PROG
+/* client config, in case if regular setuid invocations of binary are not permitted. */
+#define CLIENT_PATH_CONF "/etc/client.access.conf"
 /* daccess socket path. This can be overriden. */
 #define DACCESS_SOCK_PATH "/tmp/daccess"
 /*
