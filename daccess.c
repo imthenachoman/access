@@ -58,6 +58,7 @@
 static int daccess_serverfd = -1, daccess_clfd = -1;
 static int daccess_retval;
 static char *daccess_sockname;
+static char *daccess_chroot_dir;
 static int daccess_nargc;
 static char **daccess_nargv, **daccess_orig_argv;
 static int daccess_server;
@@ -180,11 +181,40 @@ struct pidcreds {
 	gid_t rgid, egid;
 	int ngids;
 	gid_t *gids;
+	char *cwd;
+	char *root;
 };
+
+static char *readlink_safe(const char *lpath)
+{
+	char *r = NULL;
+	size_t sz, x;
+
+	x = ACS_ALLOC_SMALL;
+_again:	r = acs_realloc(r, x);
+	sz = (size_t)readlink(lpath, r, x);
+	if (sz == NOSIZE) {
+		pfree(r);
+		return NULL;
+	}
+	if (sz >= x) {
+		x += ACS_ALLOC_SMALL;
+		if (x > ACS_ALLOC_MAX) {
+			pfree(r);
+			return NULL;
+		}
+		goto _again;
+	}
+
+	shrink_dynstr(&r);
+	return r;
+}
 
 static void freepidcreds(struct pidcreds *pcred)
 {
 	if (pcred->gids) pfree(pcred->gids);
+	if (pcred->cwd) pfree(pcred->cwd);
+	if (pcred->root) pfree(pcred->root);
 	acs_memzero(pcred, sizeof(struct pidcreds));
 }
 
@@ -249,6 +279,11 @@ static int getpidcreds(pid_t pid, struct pidcreds *pcred)
 
 	if (!uidread || !gidread || !groupsread) goto _err;
 	if (f) fclose(f);
+
+	acs_asprintf(&str, "/proc/%u/cwd", pid);
+	pcred->cwd = readlink_safe(str);
+	acs_asprintf(&str, "/proc/%u/root", pid);
+	pcred->root = readlink_safe(str);
 	pfree(str);
 
 	return r;
@@ -267,8 +302,13 @@ static void defuse_pcreds(struct pidcreds *pcred)
 	pcred->egid = pcred->rgid;
 }
 
-static void setpidcreds(struct pidcreds *pcred)
+static void setpidcreds(struct pidcreds *pcred, int dir_change)
 {
+	if (dir_change == 1) {
+		if (chdir(pcred->cwd) == -1) xerror("chdir %s", pcred->cwd);
+		if (chroot(pcred->root) == -1) xerror("chroot %s", pcred->root);
+	}
+
 	if (setgroups(pcred->ngids, pcred->gids) == -1) xerror("setgroups");
 #ifdef HAVE_SETRESID
 	if (setresgid(pcred->rgid, pcred->egid, pcred->egid) == -1) xerror("setresgid");
@@ -277,6 +317,7 @@ static void setpidcreds(struct pidcreds *pcred)
 	if (setregid(pcred->rgid, pcred->egid) == -1) xerror("setregid");
 	if (setreuid(pcred->ruid, pcred->euid) == -1) xerror("setreuid");
 #endif
+	if (dir_change == 2) if (chdir(pcred->cwd) == -1) xerror("chdir %s", pcred->cwd);
 }
 
 static void daccess_cloexec(int fd)
@@ -588,6 +629,7 @@ static int daccess_server_child(int clfd, int argc, char **argv)
 	clear_environ();
 	data = acs_malloc(ACS_ALLOC_MAX);
 
+	acs_memzero(&pcr, sizeof(struct pidcreds));
 	acs_memzero(&cr, sizeof(struct ucred));
 	signal(SIGHUP, SIG_IGN);
 
@@ -595,14 +637,19 @@ static int daccess_server_child(int clfd, int argc, char **argv)
 	if (getsockopt(clfd, SOL_SOCKET, SO_PEERCRED, &cr, &crl) == -1) return 1;
 	if (cr.pid == 0) return 1;
 	if (daccess_nostatus) {
-		pcr.ruid = pcr.euid = cr.uid;
+_noproc:	pcr.ruid = pcr.euid = cr.uid;
 		pcr.rgid = pcr.egid = cr.gid;
 		pcr.gids = acs_malloc(sizeof(gid_t));
 		pcr.gids[0] = cr.gid;
 		pcr.ngids = 1;
+		pcr.cwd = pcr.root = NULL;
 	}
 	else {
-		if (getpidcreds(cr.pid, &pcr) == -1) return 1;
+		if (getpidcreds(cr.pid, &pcr) == -1) {
+			/* Non-Linux systems. */
+			daccess_nostatus = 1;
+			goto _noproc;
+		}
 	}
 	defuse_pcreds(&pcr);
 	if (pcr.ruid != cr.uid) return 1;
@@ -657,6 +704,42 @@ _badenv:	pfree(s);
 	}
 	daccess_send_ack(clfd);
 
+	/* cwd */
+	s = daccess_receive_string(clfd, ACS_ALLOC_MAX);
+	if (!s) return 1;
+	if (pcr.root && pcr.cwd) {
+		d = pcr.cwd;
+		l = strlen(pcr.root);
+		if (!strcmp(pcr.root, "/")) l = 0;
+		else if (!strcmp(pcr.root, pcr.cwd)) {
+			l = 0;
+			d = acs_strdup("/");
+		}
+		if (strncmp(d+l, s, ACS_ALLOC_MAX) != 0) xexits("access denied");
+		if (d != pcr.cwd) pfree(d);
+	}
+	else {
+		pid_t tstpid;
+
+		pfree(pcr.root);
+		pcr.root = acs_strdup("/");
+		pfree(pcr.cwd);
+		pcr.cwd = acs_strdup(s);
+
+		tstpid = fork();
+		if (tstpid == -1) xerror("fork");
+		if (tstpid == 0) {
+			setpidcreds(&pcr, 2);
+			acs_exit(0);
+		}
+		waitpid(tstpid, &daccess_retval, 0);
+		daccess_retval = WEXITSTATUS(daccess_retval);
+		if (daccess_retval != 0) xexits("directory permissions failed");
+
+	}
+	pfree(s);
+	daccess_send_ack(clfd);
+
 	/* fds */
 	maxfd = sysconf(_SC_OPEN_MAX);
 	nfds = daccess_receive_int(clfd);
@@ -704,14 +787,14 @@ _badenv:	pfree(s);
 #endif
 
 				pcr.euid = 0; /* <-- setuid! */
-				setpidcreds(&pcr);
+				setpidcreds(&pcr, 1);
 
 				execve(*daccess_nargv,
 					*(argv+1) ? daccess_nargv+1 : daccess_nargv, environ);
 				xerror("execve of %s", *daccess_nargv);
 			}
 
-			setpidcreds(&pcr);
+			setpidcreds(&pcr, 0);
 			freepidcreds(&pcr);
 			pfree(ptsi.ptsname);
 
@@ -758,7 +841,7 @@ _badenv:	pfree(s);
 			if (setsid() == -1) xerror("setsid");
 
 			pcr.euid = 0; /* <-- setuid! */
-			setpidcreds(&pcr);
+			setpidcreds(&pcr, 1);
 
 			execve(*daccess_nargv,
 				*(argv+1) ? daccess_nargv+1 : daccess_nargv, environ);
@@ -768,7 +851,7 @@ _badenv:	pfree(s);
 
 	daccess_closestd(recvfds);
 
-	setpidcreds(&pcr);
+	setpidcreds(&pcr, 0);
 	freepidcreds(&pcr);
 
 	waitpid(execpid, &daccess_retval, 0);
@@ -821,7 +904,7 @@ static int client_connect(const char *sockname, int argc, char **argv)
 {
 	size_t l;
 	int x, *sendfds, maxfd;
-	char *sdata, *udata;
+	char *cwd, *sdata, *udata;
 
 	daccess_retval = 1;
 
@@ -868,6 +951,13 @@ static int client_connect(const char *sockname, int argc, char **argv)
 		daccess_send_string(daccess_clfd, *(environ+x));
 	if (daccess_receive_ack(daccess_clfd) != 1) goto _fail;
 
+	/* cwd */
+	cwd = acs_getcwd();
+	if (!cwd) goto _fail;
+	daccess_send_string(daccess_clfd, cwd);
+	pfree(cwd);
+	if (daccess_receive_ack(daccess_clfd) != 1) goto _fail;
+
 	/* fds */
 	sendfds = acs_malloc(3 * sizeof(int));
 	/* stdfds */
@@ -904,8 +994,8 @@ _fail:
 
 static void daccess_usage(void)
 {
-	acs_say("usage: daccess [-scFN] [-p passwd] [-S sock] [-C sock] cmdline");
-	acs_say("  helper server for setuid-crippled systems.");
+	acs_say("usage: daccess [-scFN] [-p passwd] [-S sock] [-C sock] [-R root] cmdline");
+	acs_say("  helper server for setuid crippled systems.");
 	acs_say("  runs cmdline as setuid program.");
 	acs_say("  -s: start server with default sock path \"%s\"", DACCESS_SOCK_PATH);
 	acs_say("  -c: connect to server with default sock path \"%s\"", DACCESS_SOCK_PATH);
@@ -914,6 +1004,7 @@ static void daccess_usage(void)
 	acs_say("  -p passwd: set daccess control password (will be erased from args)");
 	acs_say("  -F: do not daemonise the server, so errors are visible");
 	acs_say("  -N: do not try to open /proc/pid/status, use basic socket credentials");
+	acs_say("  -R root: (daemon only) chroot into root directory before operations");
 	acs_exit(1);
 }
 
@@ -940,7 +1031,7 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 	set_progname("daccess");
 
 	acs_opterr = 0;
-	while ((c = acs_getopt(argc, argv, "scS:C:p:FN")) != -1) {
+	while ((c = acs_getopt(argc, argv, "scS:C:p:FNR:")) != -1) {
 		switch (c) {
 			case 'F': daccess_nodaemon = 1; break;
 			case 'N': daccess_nostatus = 1; break;
@@ -952,6 +1043,7 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 				daccess_password = acs_strdup(acs_optarg);
 				memset(acs_optarg, 'x', strlen(acs_optarg));
 				break;
+			case 'R': daccess_chroot_dir = acs_strdup(acs_optarg); break;
 			default: daccess_usage(); break;
 		}
 	}
@@ -977,6 +1069,12 @@ _dothings:
 	if (daccess_server) {
 		if (argc-acs_optind == 0 || *(argv+acs_optind) == NULL)
 			daccess_usage();
+		if (daccess_chroot_dir) {
+			if (chdir(daccess_chroot_dir) == -1)
+				xerror("chroot %s", daccess_chroot_dir);
+			if (chroot(daccess_chroot_dir) == -1)
+				xerror("chroot %s", daccess_chroot_dir);
+		}
 		if (!daccess_nodaemon) daccess_daemonise();
 		acs_exit(start_server(sockname, argc-acs_optind, argv+acs_optind));
 	}

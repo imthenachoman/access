@@ -284,7 +284,7 @@ char *build_protected_cmdline(int argc, char **argv);
 char **parse_cmdline(char *p);
 int is_exec(const char *path);
 char *which(const char *spathspec, const char *progname, const char *root);
-char *find_access(const char *name);
+char *find_access_exec(const char *name);
 
 /* conf.c */
 

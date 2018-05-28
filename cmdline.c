@@ -196,7 +196,7 @@ char *which(const char *spathspec, const char *progname, const char *root)
 	return NULL;
 }
 
-char *find_access(const char *name)
+char *find_access_exec(const char *name)
 {
 	char *r = NULL;
 

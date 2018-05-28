@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 #ifdef WITH_DACCESS_PROG
 		s = parse_client_conf();
 		if (s) {
-			d = find_access(s);
+			d = find_access_exec(s);
 			if (!d) goto _notfoundiss;
 			argv[0] = s;
 			if (execv(d, argv) == -1) xerror_status(127, "execv");
@@ -317,7 +317,7 @@ _notfoundiss:		acs_exit(127);
 
 		s = parse_client_conf();
 		if (s) {
-			d = find_access(s);
+			d = find_access_exec(s);
 			if (!d) goto _notfoundrun;
 			argv[0] = s;
 			if (execv(d, argv) == -1) xerror_status(127, "execv");

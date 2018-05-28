@@ -183,7 +183,7 @@ int su_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, gid_t
 	access_name = parse_client_conf();
 #endif
 	if (!access_name) access_name = acs_strdup(PROGRAM_NAME);
-	access_path = find_access(access_name);
+	access_path = find_access_exec(access_name);
 	if (!access_path) xexits("%s was not found.", access_name);
 
 	c = 1;
