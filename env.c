@@ -476,6 +476,6 @@ void set_user_environ(void)
 
 	if (is_super_user()) {
 		set_envvars(EVC_OPTE_SET, 1);
-		unset_envvars(EVC_OPTE_UNSET, 0);
+		unset_envvars(EVC_OPTE_UNSET, 1);
 	}
 }
