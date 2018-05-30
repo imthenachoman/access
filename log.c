@@ -49,11 +49,11 @@ _last:		chr[0] = (char)x;
 	goto _last;
 }
 
-#define retn(x) do { if (logfile) fclose(logfile); pfree(path); pfree(logline); return x; } while (0)
+#define retn(x) do { if (logfd != -1) close(logfd); pfree(path); pfree(logline); return x; } while (0)
 int write_log_line(const char *blamestr)
 {
-	int x;
-	FILE *logfile = NULL;
+	int logfd = -1;
+	size_t sz;
 	char *logline, *slogfmt;
 	char *path = NULL;
 	struct fmtstr_args *fsa;
@@ -110,19 +110,19 @@ int write_log_line(const char *blamestr)
 		pfree(fsa);
 		if (fst.trunc) xexits("bad logfile= parse state");
 
-		logfile = fopen(path, "a");
-		if (!logfile) retn(0);
-		fchmod(fileno(logfile), 0640); /* always update mode */
+		logfd = open(path, O_CREAT|O_WRONLY|O_APPEND, 0640);
+		if (logfd == -1) retn(0);
+		fchmod(logfd, 0640); /* always update mode */
 
-		x = fputs(logline, logfile);
-		if (x == EOF) retn(0);
-		x = fputc('\n', logfile);
-		if (x == EOF) retn(0);
-		x = fflush(logfile);
-		if (x == -1 || x == EOF) retn(0);
+		acs_astrcat(&logline, "\n");
+		sz = shrink_dynstr(&logline);
+		if (sz > 1 && sz != NOSIZE) sz--;
+		else if (sz == NOSIZE) retn(0);
+		else retn(1);
 
-		fclose(logfile);
-		logfile = NULL;
+		if (write(logfd, logline, sz) == -1) retn(0);
+
+		close(logfd);
 		retn(1);
 #ifdef SYSLOG_SUPPORT
 	}
