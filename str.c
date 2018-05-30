@@ -183,27 +183,6 @@ size_t acs_strnlen(const char *s, size_t n)
 	return p ? p-s : n;
 }
 
-/* what an abusive declaration fgets has */
-size_t acs_fgets(char *s, size_t n, FILE *f)
-{
-	size_t r;
-
-	if (!s || !n || !f) return NOSIZE;
-
-	/* access does not read such many characters anyway */
-	if (n >= ACS_XSALLOC_MAX) return NOSIZE;
-
-	/* safety first! */
-	acs_memzero(s, n);
-
-	if (fgets(s, (int)n, f) == s) {
-		r = newline_to_nul(s, n);
-		return r;
-	}
-
-	return NOSIZE;
-}
-
 char *acs_strdup(const char *s)
 {
 	char *r = acs_strndup(s, ACS_XSALLOC_MAX);

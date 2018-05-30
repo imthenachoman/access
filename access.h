@@ -565,7 +565,6 @@ int acs_vasprintf(char **s, const char *fmt, va_list ap);
 int acs_asprintf(char **s, const char *fmt, ...);
 size_t acs_strlcpy(char *d, const char *s, size_t n);
 size_t acs_strnlen(const char *s, size_t n);
-size_t acs_fgets(char *s, size_t n, FILE *f);
 char *acs_strdup(const char *s);
 char *acs_strnstr(const char *hs, const char *ne, size_t hsn);
 char *acs_strstr(const char *hs, const char *ne);

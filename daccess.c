@@ -220,23 +220,28 @@ static void freepidcreds(struct pidcreds *pcred)
 
 static int getpidcreds(pid_t pid, struct pidcreds *pcred)
 {
-	FILE *f = NULL;
+	int fd;
+	void *cfg = NULL;
 	int uidread = 0, gidread = 0, groupsread = 0;
-	size_t x;
 	char *str = NULL;
-	int r = 0;
+	int x, r = 0;
 
 	/* read /proc/pid/status and fill struct */
 	acs_asprintf(&str, "/proc/%u/status", pid);
-	f = fopen(str, "rb");
-	str = acs_realloc(str, ACS_ALLOC_SMALL);
-	if (!f) {
-		if (errno == ENOENT) errno = ESRCH;
+	fd = open(str, O_RDONLY);
+	if (fd == -1) goto _erresrch;
+	pfree(str);
+	cfg = load_config(fd);
+	if (!cfg) {
+_erresrch:	if (errno == ENOENT) errno = ESRCH;
+		if (fd != -1) close(fd);
 		goto _err;
 	}
+	close(fd);
+
 	while (1) {
 		if (uidread && gidread && groupsread) break;
-		if (acs_fgets(str, ACS_ALLOC_SMALL, f) == NOSIZE) break;
+		str = get_config_line(cfg);
 		if (!strncmp(str, "Uid:", 4)) {
 			x = sscanf(str+4, "\t%u\t%u", &pcred->ruid, &pcred->euid);
 			if (x < 2) goto _err;
@@ -278,8 +283,9 @@ static int getpidcreds(pid_t pid, struct pidcreds *pcred)
 	}
 
 	if (!uidread || !gidread || !groupsread) goto _err;
-	if (f) fclose(f);
+	free_config(cfg);
 
+	str = NULL;
 	acs_asprintf(&str, "/proc/%u/cwd", pid);
 	pcred->cwd = readlink_safe(str);
 	acs_asprintf(&str, "/proc/%u/root", pid);
@@ -289,7 +295,7 @@ static int getpidcreds(pid_t pid, struct pidcreds *pcred)
 	return r;
 
 _err:
-	if (f) fclose(f);
+	if (cfg) free_config(cfg);
 	freepidcreds(pcred);
 	pfree(str);
 

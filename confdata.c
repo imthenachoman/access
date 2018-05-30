@@ -65,20 +65,18 @@ int is_comment(const char *s)
 
 void *load_config(int fd)
 {
-	size_t x;
+	size_t x, sz;
 	struct config *r;
 	char *s;
 
 	r = acs_malloc(sizeof(struct config));
 
-	x = small_file_fdsize(fd);
-	if (x == NOSIZE) {
-		free_config(r);
-		return NULL;
-	}
+	sz = small_file_fdsize(fd);
+	if (sz == NOSIZE || sz == 0) sz = ACS_ALLOC_MAX-1;
 
-	r->cfgdata = acs_malloc(x+1); /* so last line will not face xmalloc safety zone. */
-	if ((size_t)read(fd, r->cfgdata, x) != x) {
+	r->cfgdata = acs_malloc(sz+1); /* so last line will not face xmalloc safety zone. */
+	x = (size_t)read(fd, r->cfgdata, sz);
+	if (x == NOSIZE || x == 0) {
 		free_config(r);
 		return NULL;
 	}
