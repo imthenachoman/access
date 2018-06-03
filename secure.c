@@ -421,7 +421,7 @@ void find_new_exec(const char *spathspec, const char *progname, const char *chro
 	else pfree(execpath);
 	pfree(execfpath);
 
-	execfpath = which(spathspec, progname, chroot);
+	execfpath = acs_which(spathspec, progname, chroot);
 	if (!execfpath) return;
 
 	if (chroot) {

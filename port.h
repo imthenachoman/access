@@ -29,8 +29,8 @@
 #ifndef _ACCESS_PORT_H
 #define _ACCESS_PORT_H
 
-#ifndef _BACS_SOURCE
-#define _BACS_SOURCE
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
 #endif
 
 #ifdef HAVE_SETRESID
@@ -42,6 +42,15 @@
 #ifdef WITH_DACCESS_PROG
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+#ifndef ACS_NEED_RANDOM
+#define ACS_NEED_RANDOM
+#endif
+#endif
+
+#ifdef WITH_ACSMKPWD_PROG
+#ifndef ACS_NEED_RANDOM
+#define ACS_NEED_RANDOM
 #endif
 #endif
 

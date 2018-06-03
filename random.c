@@ -28,6 +28,8 @@
 
 #include "access.h"
 
+#ifdef ACS_NEED_RANDOM
+
 void access_getrandom(void *vbuf, size_t size)
 {
 	char *buf = vbuf;
@@ -100,3 +102,5 @@ char *make_random_salt(void)
 
 	return R;
 }
+
+#endif

@@ -142,7 +142,7 @@ int is_exec(const char *path)
 }
 
 /* Pure `which` like, running over spath */
-char *which(const char *spathspec, const char *progname, const char *root)
+char *acs_which(const char *spathspec, const char *progname, const char *root)
 {
 	char *tmp = NULL;
 	char *spath_copy, *s, *d, *t;
@@ -196,6 +196,7 @@ char *which(const char *spathspec, const char *progname, const char *root)
 	return NULL;
 }
 
+#if defined WITH_SU_PROG || defined WITH_DACCESS_PROG
 char *find_access_exec(const char *name)
 {
 	char *r = NULL;
@@ -204,5 +205,6 @@ char *find_access_exec(const char *name)
 	if (is_exec(r)) return r;
 
 	pfree(r);
-	return which(spath, name ? name : PROGRAM_NAME, NULL);
+	return acs_which(spath, name ? name : PROGRAM_NAME, NULL);
 }
+#endif

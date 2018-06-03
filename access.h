@@ -283,8 +283,10 @@ char *build_cmdline(int argc, char **argv);
 char *build_protected_cmdline(int argc, char **argv);
 char **parse_cmdline(char *p);
 int is_exec(const char *path);
-char *which(const char *spathspec, const char *progname, const char *root);
+char *acs_which(const char *spathspec, const char *progname, const char *root);
+#if defined WITH_SU_PROG || defined WITH_DACCESS_PROG
 char *find_access_exec(const char *name);
+#endif
 
 /* conf.c */
 
@@ -474,9 +476,11 @@ int is_numbergrps(const char *sgrps);
 
 /* random.c */
 
+#ifdef ACS_NEED_RANDOM
 void access_getrandom(void *vbuf, size_t size);
 unsigned acs_randrange(unsigned s, unsigned d);
 char *make_random_salt(void);
+#endif
 
 /* rlimit.c */
 
