@@ -77,26 +77,13 @@ static int acs_vsnprintf_real(char *s, size_t n, const char *fmt, va_list ap)
 {
 	int r;
 	va_list t;
-#ifdef HAVE_NO_SNPRINTF
-	FILE *fdevnull;
-#endif
 
 	acs_memzero(s, n);
 
-#ifdef HAVE_NO_SNPRINTF
-	fdevnull = fopen("/dev/null", "w");
-	if (!fdevnull) xexits("acs_vsnprintf: /dev/null is not available!");
-	va_copy(t, ap);
-	r = vfprintf(fdevnull, fmt, t);
-	va_end(t);
-	fclose(fdevnull);
-	if (r < 0 || r >= n) return r;
-	if (n && s) r = vsprintf(s, fmt, t);
-#else
 	va_copy(t, ap);
 	r = vsnprintf(s, n, fmt, t);
 	va_end(t);
-#endif
+
 	return r;
 }
 

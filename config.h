@@ -65,7 +65,5 @@
 #define HAVE_SETPRIORITY
 /* You build for OpenBSD with true issetugid(2) syscall */
 /* #define HAVE_ISSETUGID */
-/* Your system is insane or too old, so it even does not have snprintf. */
-/* #define HAVE_NO_SNPRINTF */
 /* Reset resource limits to safer values, do not trust invoker ones which may lead to crash. */
 #define WITH_RESETRLIMITS
