@@ -160,7 +160,7 @@ static void access_askpass(void)
 				reseterr();
 				extern_prog_running = 1;
 				x = forkexec(0, *targv, tpp, tenvp, NULL, pwdfd, passwd, ACS_PASSWD_MAX);
-				if (errno) xerror("running password asking program \"%s\" failed", basename(*targv));
+				if (errno) xerror("running password asking program \"%s\" failed", acs_basename(*targv));
 				extern_prog_running = 0;
 				destroy_argv(&tenvp);
 				pfree(targv);
@@ -984,7 +984,7 @@ if (schrootdir && chrootdir) {
 		reseterr();
 		extern_prog_running = 1;
 		auditreturn = forkexec(0, *targv, tpp, tenvp, &auditpid, pfd, T, ACS_PASSWD_MAX);
-		if (errno) xerror("running audit program \"%s\" failed", basename(*targv));
+		if (errno) xerror("running audit program \"%s\" failed", acs_basename(*targv));
 		extern_prog_running = 0;
 		destroy_argv(&tenvp);
 		pfree(targv);
