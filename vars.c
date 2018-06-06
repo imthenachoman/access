@@ -94,6 +94,7 @@ struct def_envvar_list scary_envvars[] = {
 	EVL_ENTRY("LDR_*"), EVL_ENTRY("MALLOC_*"),
 	EVL_ENTRY("LIBC_*"), EVL_ENTRY("MUSL_*"),
 	EVL_ENTRY("PS?"), EVL_ENTRY("*_ACE"),
+	EVL_ENTRY("LC_*"),
 /* single names */
 	EVL_ENTRY("MAIL"), EVL_ENTRY("HOSTALIASES"),
 	EVL_ENTRY("LOCALDOMAIN"), EVL_ENTRY("RESOLV_HOST_CONF"),
@@ -105,7 +106,7 @@ struct def_envvar_list scary_envvars[] = {
 	EVL_ENTRY("TERMINFO"), EVL_ENTRY("TERMINFO_DIRS"),
 	EVL_ENTRY("TERMCAP"), EVL_ENTRY("TMPDIR"),
 	EVL_ENTRY("TZDIR"), EVL_ENTRY("HISTFILE"),
-	EVL_ENTRY("LANGUAGE"),
+	EVL_ENTRY("LANGUAGE"), EVL_ENTRY("TZ"),
 };
 size_t scary_envvars_sz = STAT_ARRAY_SZ(scary_envvars);
 
