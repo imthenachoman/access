@@ -34,7 +34,7 @@ static char *getsdate(time_t t, const char *fmt)
 	size_t rn;
 	struct tm *tmnow;
 
-	rn = 64;
+	rn = ACS_ALLOC_SMALL;
 	r = acs_malloc(rn);
 
 	if (!fmt) fmt = "%c";
@@ -44,7 +44,12 @@ static char *getsdate(time_t t, const char *fmt)
 		return r;
 	}
 _again:	if (strftime(r, rn, fmt, tmnow) == 0) {
-		rn += 64;
+		rn += ACS_ALLOC_SMALL;
+		if (rn > ACS_XSALLOC_MAX) {
+			acs_realloc(r, ACS_ALLOC_SMALL);
+			acs_asprintf(&r, "(getsdate error: tried to allocate %zu bytes)", rn);
+			return r;
+		}
 		r = acs_realloc(r, rn);
 		goto _again;
 	}

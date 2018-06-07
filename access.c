@@ -264,8 +264,6 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	init_datetime();
-
 	acs_opterr = 0;
 
 /* Get info about asking user */
@@ -665,6 +663,8 @@ _notfoundrun:		acs_exit(127);
 	readin_default_settings();
 /* Kill all the scary envvars. */
 	kill_scary_envvars(is_super_user());
+/* Init datestamps, with defaults applied already */
+	init_datetime();
 
 	if (usage_long_req) usage_long();
 #ifdef _ACCESS_VERSION
@@ -777,9 +777,6 @@ _d_arg_out:	pfree(s);
 	if (c_arg) print_uidinfos(c_arg, pui_flags);
 
 	if (!cmdline || str_empty(cmdline)) usage();
-
-	/* in case if there was "%set timefmt=" */
-	update_datetime();
 
 	execname = acs_strdup(isflag(argflags, ARG_l) ? dstusrshell : first_arg);
 	if (is_super_user()) { /* check if superuser had given "-e PATH=..." */
