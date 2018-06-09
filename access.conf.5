@@ -1,4 +1,4 @@
-.Dd 23May2018
+.Dd 09Jun2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -175,17 +175,6 @@ Default is
 
 .It Va syslog
 Do logging to syslog instead of to dedicated file.
-
-.It Va nocommands
-Disable
-.Op Fl c
-option usage completely except for superuser.
-
-Note that this may hurt
-.Xr su 1
-embedded compatibility program, because it relies on
-.Op Fl c
-commands during it's run.
 
 .It Va fullinfo
 Enable full information grabbing:
@@ -746,7 +735,7 @@ access can be configured to delegate password asking routine to external program
 
 The program executed by access runs as superuser, receives the protection same to access program itself at runtime, so it cannot be killed by unprivileged user or tampered with to try to gain access. If you wish no to run a complex code as superuser, you may wrap it into a small shell script which will respawn it again using access itself as other (dedicated) unprivileged user:
 .Bd -literal -offset 8n
-#!/bin/access -C noclose -e PATH=/bin:/sbin -u nobody -- /bin/sh
+#!/bin/access -C -e PATH=/bin:/sbin -u nobody -- /bin/sh
 exec /sbin/pwaskprogram args ...
 .Ed
 
@@ -1125,7 +1114,6 @@ can be specified on same line, thus, mixed:
 
 .Em All flags
 except of:
-.Sy nocommands ,
 .Sy spath ,
 .Sy supath ,
 .Sy delay ,

@@ -284,7 +284,6 @@ void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype
 				case 'x': xnotargflag(notarg, &notargflags_l, ARG_x); break;
 				case 'n': xnotargflag(notarg, &notargflags_l, ARG_n); break;
 				case 'F': xnotargflag(notarg, &notargflags_l, ARG_F); break;
-				case 'C': xnotargflag(notarg, &notargflags_l, ARG_C); break;
 				case 'L': xnotargflag(notarg, &notargflags_l, ARG_L); break;
 #ifdef HAVE_SETPRIORITY
 				case 'Q': xnotargflag(notarg, &notargflags_l, ARG_Q); break;
@@ -484,11 +483,6 @@ void set_variable(const char *spec, int init)
 	acs_strlcpy(setvar_tmp, spec, ACS_ALLOC_MAX);
 	s = setvar_tmp;
 
-	if (!strcmp(s, "nocommands")) {
-		nocommands = 1;
-		return;
-	}
-
 	if (!strcmp(s, "pwecho")) {
 		getp_flags &= ~GETP_NOECHO;
 		return;
@@ -560,7 +554,8 @@ void set_variable(const char *spec, int init)
 		return;
 	}
 
-	if (!strcmp(s, "minfd") && !isflag(argflags, ARG_C)) {
+	if (!strcmp(s, "minfd")) {
+		if (minfd == -1) return;
 		minfd = atoi(d);
 		return;
 	}
@@ -709,11 +704,6 @@ void unset_variable(const char *name)
 		return;
 	}
 
-	if (!strcmp(name, "nocommands")) {
-		nocommands = 0;
-		return;
-	}
-
 	if (!strcmp(name, "delay")) {
 		delay = DELAY_WRPASS;
 		return;
@@ -742,7 +732,8 @@ void unset_variable(const char *name)
 		return;
 	}
 
-	if (!strcmp(name, "minfd") && !isflag(argflags, ARG_C)) {
+	if (!strcmp(name, "minfd")) {
+		if (minfd == -1) return;
 		minfd = 3;
 		return;
 	}

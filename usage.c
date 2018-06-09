@@ -31,12 +31,12 @@
 void usage(void)
 {
 	acs_say("usage: %s [-uU user/uid] [-gG group/gid] [-sS gid,group,...]", progname);
-	acs_say("\t[-tTxX] [-e VAR=VAL] [-a argv0] [-c vcmd] [-C minfd]");
+	acs_say("\t[-tTxX] [-e VAR=VAL] [-a argv0] [-c vcmd]");
 	acs_say("\t[-d chdir] [-F fd] [-L rlimspec] [-Q prio] [-R newroot]");
 #ifdef _ACCESS_VERSION
-	acs_say("\t[-AbBDEfIlnNpPvVwWy] [--] cmdline ...");
+	acs_say("\t[-AbBCDEfIlnNpPvVwWy] [--] cmdline ...");
 #else
-	acs_say("\t[-AbBDEfIlnNpPvwWy] [--] cmdline ...");
+	acs_say("\t[-AbBCDEfIlnNpPvwWy] [--] cmdline ...");
 #endif
 
 	acs_say("run %s with -h to see full help text", progname);
@@ -64,22 +64,19 @@ void usage_long(void)
 	acs_say("  -A: place a '-' in beginning of argv[0] of target program");
 	acs_say("  -b: run program in background, return immediately");
 	acs_say("  -B: detach terminal to prevent tty hijacking");
-	if (!nocommands) {
-		acs_say("  -c cmd,cmd,...: execute virtual command:");
-		acs_say("    id: print id(1)-formatted userid information (without setuid)");
-		acs_say("    uid: prints real user id");
-		acs_say("    gid: prints real group id");
-		acs_say("    gids: prints all group ids");
-		acs_say("    user: prints real user name");
-		acs_say("    group: prints real group name");
-		acs_say("    groups: prints all group names");
-		acs_say("    suser: prints superuser name");
-		acs_say("    udir: print user's directory");
-		acs_say("    shell: print user's shell");
-		acs_say("   (a list of comma separated commands may be given)");
-	}
-	else acs_say("  -c: option is disabled by superuser.");
-	acs_say("  -C minfd: set minimal fd from which begin to close leakage fds");
+	acs_say("  -c cmd,cmd,...: execute virtual command:");
+	acs_say("    id: print id(1)-formatted userid information (without setuid)");
+	acs_say("    uid: prints real user id");
+	acs_say("    gid: prints real group id");
+	acs_say("    gids: prints all group ids");
+	acs_say("    user: prints real user name");
+	acs_say("    group: prints real group name");
+	acs_say("    groups: prints all group names");
+	acs_say("    suser: prints superuser name");
+	acs_say("    udir: print user's directory");
+	acs_say("    shell: print user's shell");
+	acs_say("   (a list of comma separated commands may be given)");
+	acs_say("  -C: (superuser) leave all file descriptors open");
 	acs_say("  -d dir: change working directory to dir");
 	acs_say("  -D: change working directory to user's directory");
 	acs_say("  -e VAR=VAL: set environment variable");
@@ -162,8 +159,6 @@ void print_uidinfos(char *c_opt_str, int pui_flags)
 	char *tgrps;
 	char *s, *d, *t;
 	int x;
-
-	if (nocommands && !is_super_user()) xexits("virtual commands were disabled by superuser.");
 
 	if (isflag(pui_flags, UARG_g)) {
 		tgid = dstgid; tgrp = dstgrp;

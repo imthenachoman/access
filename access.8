@@ -1,4 +1,4 @@
-.Dd 26May2018
+.Dd 09Jun2018
 .Dt ACCESS 8
 
 .Sh NAME
@@ -14,13 +14,12 @@
 .Op Fl e Ar VAR=VAL ...
 .Op Fl a Ar argv[0]
 .Op Fl c Ar cmd,cmd,...
-.Op Fl C Ar minfd
 .Op Fl d Ar chdir
 .Op Fl F Ar fd
 .Op Fl L Ar rlimspec
 .Op Fl Q Ar prio
 .Op Fl R Ar newroot
-.Op Fl AbBDEfIlnNpPvVwWy
+.Op Fl AbBCDEfIlnNpPvVwWy
 .Op Ic --
 .Ic cmdline ...
 
@@ -202,16 +201,12 @@ will require superuser privileges to be executed successfully. Both also erase t
 By default, reporting commands will use invoker credentials to be analyzed and reported, but using any of
 .Op Fl uUgGsStTxX
 options can change reported information, so one can request other user (public) credentials information.
-.It Fl C Ar minfd
-Raise minimum
-.Dq close all
-file descriptor limit to
-.Em minfd.
-If minfd is specified as
-.Dq noclose
-and invoker is superuser, then
-.Em no secure close of unused fds is performed at all, passing all the opened fds to target environment unmodified!
-This operation requires special access and by default is restricted.
+.It Fl C
+Do not close all currently open file descriptors and pass them unmodified to target program.
+
+This command line option can be invoked
+.Em only
+by superuser, and it's not for a public usage.
 .It Fl d Ar chdir
 Change working directory just before running of target program.
 If directory cannot be accessed by target user,

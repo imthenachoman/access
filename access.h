@@ -33,7 +33,7 @@
 
 #include "config.h"
 
-#define DEFAULT_FLAGS "pw,log,logfail,clearenv,nonumid,noopt_a,noopt_A,noopt_C,noopt_d,noopt_e,noopt_L,noopt_Q,noopt_P,noopt_W"
+#define DEFAULT_FLAGS "pw,log,logfail,clearenv,nonumid,noopt_a,noopt_A,noopt_d,noopt_e,noopt_L,noopt_Q,noopt_P,noopt_W"
 #define PASSWORD_PROMPT "Password:"
 #define DENY_MSG "Permission denied."
 #define DELAY_WRPASS 1000000
@@ -99,7 +99,7 @@
 #define ARG_x 1024 /* -x */
 #define ARG_n 2048 /* -n */
 #define ARG_F 4096 /* -F */
-#define ARG_C 8192 /* -C */
+/* 8192 */
 #define ARG_d 0x4000 /* -d */
 #define ARG_E 0x8000 /* -E */
 #define ARG_X 0x10000 /* -X */
@@ -162,7 +162,7 @@ extern char *spath, *supath, *logpath;
 extern char *prompt, *denymsg;
 extern char *trigline, *trigflags;
 extern char *execfpath, *execpath, *hashbang, *renamed_first_arg;
-extern uint64_t delay;
+extern useconds_t delay;
 extern int minfd, maxfd;
 extern int passwdfd;
 extern mode_t dumask;
@@ -257,8 +257,6 @@ extern int noblame;
 extern char *errstr;
 extern char default_shell[];
 extern char default_root[];
-
-extern int nocommands;
 
 extern int getp_flags;
 

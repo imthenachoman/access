@@ -51,7 +51,7 @@ char *spath, *supath, *logpath;
 char *prompt, *denymsg;
 char *trigline, *trigflags;
 char *execfpath, *execpath, *hashbang, *renamed_first_arg;
-uint64_t delay = DELAY_WRPASS;
+useconds_t delay = DELAY_WRPASS;
 int minfd = 3, maxfd = -1;
 int passwdfd = -1;
 mode_t dumask = DEFAULT_UMASK;
@@ -157,7 +157,5 @@ int noblame;
 char *errstr;
 char default_shell[] = DEFAULT_SHELL;
 char default_root[] = "/";
-
-int nocommands; /* disable -c completely */
 
 int getp_flags = GETP_NOECHO | GETP_WAITFILL;

@@ -385,7 +385,7 @@ _notfoundrun:		acs_exit(127);
 /* 'ijkmoqrz' */
 /* 'HJKMOYZ' */
 	acs_optind = 1;
-	while ((c = acs_getopt(argc, argv, "u:U:g:G:s:S:e:Ec:C:a:AbBfF:hIlL:nNPQ:R:d:DtTpvVwWxXy")) != -1) {
+	while ((c = acs_getopt(argc, argv, "u:U:g:G:s:S:e:Ec:Ca:AbBfF:hIlL:nNPQ:R:d:DtTpvVwWxXy")) != -1) {
 		switch (c) {
 			case 'b':
 				setflag(&argflags, ARG_b);
@@ -403,15 +403,8 @@ _notfoundrun:		acs_exit(127);
 				else xexits("%s: invalid fd number", acs_optarg);
 				break;
 			case 'C':
-				setflag(&argflags, ARG_C);
-				if (!strcmp(acs_optarg, "noclose")) {
-					if (!is_super_user()) xexits("only superuser can do this.");
-					minfd = -1;
-				}
-				else {
-					if (is_number(acs_optarg, 0)) minfd = atoi(acs_optarg);
-					else xexits("%s: invalid fd number", acs_optarg);
-				}
+				if (!is_super_user()) xexits("only superuser can do this.");
+				minfd = -1;
 				break;
 			case 'c':
 				pfree(c_arg);
