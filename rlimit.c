@@ -152,7 +152,8 @@ void remove_rlimspec(const char *rlimspec)
 
 	sz = DYN_ARRAY_SZ(rlimspec_list);
 	for (x = 0; x < sz; x++) {
-		if (rlimspec_list[x] && !strncmp(rlimspec_list[x], rlimspec, ACS_ALLOC_MAX)) pfree(rlimspec_list[x]);
+		if (rlimspec_list[x] && !strcmp(rlimspec_list[x], rlimspec))
+			pfree(rlimspec_list[x]);
 	}
 }
 

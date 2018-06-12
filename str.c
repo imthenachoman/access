@@ -181,7 +181,7 @@ char *acs_strdup(const char *s)
 	else return r;
 }
 
-char *acs_strnstr(const char *hs, const char *ne, size_t hsn)
+static char *acs_strnstr(const char *hs, const char *ne, size_t hsn)
 {
 	size_t nen = acs_strnlen(ne, ACS_XSALLOC_MAX);
 	if (hsn > ACS_XSALLOC_MAX) hsn = ACS_XSALLOC_MAX;
@@ -194,7 +194,7 @@ char *acs_strstr(const char *hs, const char *ne)
 	return acs_strnstr(hs, ne, ACS_XSALLOC_MAX);
 }
 
-char *acs_strnchr(const char *s, char c, size_t n)
+static char *acs_strnchr(const char *s, char c, size_t n)
 {
 	if (n > ACS_XSALLOC_MAX) n = ACS_XSALLOC_MAX;
 	n = acs_strnlen(s, n);

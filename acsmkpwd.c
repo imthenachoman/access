@@ -92,8 +92,9 @@ _pwagain:
 		xexits("password input rejected by user");
 	}
 
-	if (!strncmp(acsmkpwd_pwd1, acsmkpwd_pwd2, sizeof(acsmkpwd_pwd1)-1))
+	if (!strcmp(acsmkpwd_pwd1, acsmkpwd_pwd2)) {
 		acs_say("%s", acs_crypt(acsmkpwd_pwd1, acsmkpwd_salt));
+	}
 	else {
 		acs_esay("Passwords are different, try again");
 		goto _pwagain;

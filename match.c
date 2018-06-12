@@ -197,7 +197,7 @@ _again:
 
 	/* parse local environment variables settings */
 	if (!strcmp(ln, "%setenv")) {
-		s = acs_strnchr(lnarg, '=', ACS_ALLOC_MAX);
+		s = acs_strchr(lnarg, '=');
 		if (!s) return 0;
 		*s = 0; s++;
 
@@ -287,8 +287,8 @@ _again:
 	resolve_flags(match_flgspec, 0, &suflags_l, &argflags_l, &notargflags_l);
 
 	/* Fast check for certain flags, part 2 */
-	if (isflag(suflags_l, FLG_NOEUID) && strncmp(dstusr, dsteusr, ACS_ALLOC_MAX) != 0) return 0;
-	if (isflag(suflags_l, FLG_NOEGID) && strncmp(dstgrp, dstegrp, ACS_ALLOC_MAX) != 0) return 0;
+	if (isflag(suflags_l, FLG_NOEUID) && strcmp(dstusr, dsteusr) != 0) return 0;
+	if (isflag(suflags_l, FLG_NOEGID) && strcmp(dstgrp, dstegrp) != 0) return 0;
 	if (sdstdir && isflag(argflags_l, ARG_d)) {
 		if (match_type == MATCH_REGEX) fixup_regex_pattern(&sdstdir, 0);
 		if (!match_pattern(sdstdir, dstdir)) return 0;
@@ -300,21 +300,18 @@ _again:
 		if (d) d = NULL;
 		switch (x) {
 			case 0: /* srcusr */
-				if (!strncmp(s, srcusr, LN_SIZEOF(match_srcspec))
-				|| !strcmp(s, ACS_ANYUSR)) ret = 1;
+				if (!strcmp(s, srcusr) || !strcmp(s, ACS_ANYUSR)) ret = 1;
 				else return 0;
 				break;
 			case 1: /* srcgrp */
-				if (!strncmp(s, srcgrp, LN_SIZEOF(match_srcspec))
-				|| !strcmp(s, ACS_ANYUSR)) ret = 1;
+				if (!strcmp(s, srcgrp) || !strcmp(s, ACS_ANYUSR)) ret = 1;
 				else return 0;
 				break;
 			case 2: /* srcgrps,... */
-				if (!strncmp(s, srcgrps, LN_SIZEOF(match_srcspec))
-				|| !strcmp(s, ACS_ANYUSR)) ret = 1;
-				else if (acs_strnchr(s, '*', LN_SIZEOF(s))
+				if (!strcmp(s, srcgrps) || !strcmp(s, ACS_ANYUSR)) ret = 1;
+				else if (acs_strchr(s, '*')
 				&& match_pattern_type(s, srcgrps, MATCH_FNMATCH)) ret = 1;
-				else if (acs_strnchr(s, '+', LN_SIZEOF(s))) {
+				else if (acs_strchr(s, '+')) {
 					char *S, *D, *T;
 					char *SS, *DD, *TT;
 					int XX, YY;
@@ -327,9 +324,7 @@ _again:
 						SS = DD = match_tmp;
 						while ((SS = acs_strtok_r(DD, ",", &TT))) {
 							if (DD) DD = NULL;
-
-							if (!strncmp(S+1, SS, ACS_ALLOC_MAX))
-								YY++;
+							if (!strcmp(S+1, SS)) YY++;
 						}
 
 						XX++;
@@ -363,38 +358,36 @@ _again:
 				/* "<same>,<same>" */
 				if (!strcmp(s, ACS_SAMEUSR)
 				|| !strcmp(s, ACS_SAMEUSR "," ACS_SAMEUSR)) {
-					if (!strncmp(srcusr, dstusr, ACS_ALLOC_MAX)
-					&& !strncmp(srcusr, dsteusr, ACS_ALLOC_MAX)) {
+					if (!strcmp(srcusr, dstusr) && !strcmp(srcusr, dsteusr)) {
 						acs_asprintf(&match_tmp, "%s", s);
 						tp = match_tmp;
 					}
 				}
-				if (strncmp(dstusr, dsteusr, ACS_ALLOC_MAX) != 0) {
+				if (strcmp(dstusr, dsteusr) != 0) {
 					/* I have single name in config, but
 					   invoker requests seteuid - deny request */
-					if (!acs_strnchr(s, ',', LN_SIZEOF(s))) return 0;
+					if (!acs_strchr(s, ',')) return 0;
 					/* "<same>,dsteusr" */
-					if (acs_strnstr(s, ACS_SAMEUSR ",", LN_SIZEOF(s))) {
-						if (!strncmp(srcusr, dstusr, ACS_ALLOC_MAX)) {
+					if (acs_strstr(s, ACS_SAMEUSR ",")) {
+						if (!strcmp(srcusr, dstusr)) {
 							acs_asprintf(&match_tmp,
 							ACS_SAMEUSR ",%s", dsteusr);
 						}
 					}
 					/* "dstusr,<same>" */
-					else if (acs_strnstr(s, "," ACS_SAMEUSR, LN_SIZEOF(s))) {
-						if (!strncmp(srcusr, dsteusr, ACS_ALLOC_MAX)) {
+					else if (acs_strstr(s, "," ACS_SAMEUSR)) {
+						if (!strcmp(srcusr, dsteusr)) {
 							acs_asprintf(&match_tmp,
 							"%s," ACS_SAMEUSR, dstusr);
 						}
 					}
 					/* "dstusr,*" */
-					else if (acs_strnstr(s, "," ACS_ANYUSR, LN_SIZEOF(s))) {
+					else if (acs_strstr(s, "," ACS_ANYUSR)) {
 						acs_asprintf(&match_tmp,
 						"%s," ACS_ANYUSR, dstusr);
 					}
 					/* "*,dsteusr" */
-					else if (!strncmp(s, ACS_ANYUSR ",",
-					CSTR_SZ(ACS_ANYUSR ","))) {
+					else if (!strcmp(s, ACS_ANYUSR ",")) {
 						acs_asprintf(&match_tmp,
 						ACS_ANYUSR ",%s", dsteusr);
 					}
@@ -403,8 +396,7 @@ _again:
 						"%s,%s", dstusr, dsteusr);
 					tp = match_tmp;
 				}
-				if (!strncmp(s, tp, LN_SIZEOF(match_dstspec)))
-					setflag(&ret, M_DUSR);
+				if (!strcmp(s, tp)) setflag(&ret, M_DUSR);
 				else return 0;
 				break;
 			case 1: /* dstgrp,dstegrp */
@@ -415,32 +407,30 @@ _again:
 				tp = dstgrp;
 				if (!strcmp(s, ACS_SAMEUSR)
 				|| !strcmp(s, ACS_SAMEUSR "," ACS_SAMEUSR)) {
-					if (!strncmp(srcgrp, dstgrp, ACS_ALLOC_MAX)
-					&& !strncmp(srcgrp, dstegrp, ACS_ALLOC_MAX)) {
+					if (!strcmp(srcgrp, dstgrp) && !strcmp(srcgrp, dstegrp)) {
 						acs_asprintf(&match_tmp, "%s", s);
 						tp = match_tmp;
 					}
 				}
-				if (strncmp(dstgrp, dstegrp, ACS_ALLOC_MAX) != 0) {
-					if (!acs_strnchr(s, ',', LN_SIZEOF(s))) return 0;
-					if (acs_strnstr(s, ACS_SAMEUSR ",", LN_SIZEOF(s))) {
-						if (!strncmp(srcgrp, dstgrp, ACS_ALLOC_MAX)) {
+				if (strcmp(dstgrp, dstegrp) != 0) {
+					if (!acs_strchr(s, ',')) return 0;
+					if (acs_strstr(s, ACS_SAMEUSR ",")) {
+						if (!strcmp(srcgrp, dstgrp)) {
 							acs_asprintf(&match_tmp,
 							ACS_SAMEUSR ",%s", dstegrp);
 						}
 					}
-					else if (acs_strnstr(s, "," ACS_SAMEUSR, LN_SIZEOF(s))) {
-						if (!strncmp(srcgrp, dstegrp, ACS_ALLOC_MAX)) {
+					else if (acs_strstr(s, "," ACS_SAMEUSR)) {
+						if (!strcmp(srcgrp, dstegrp)) {
 							acs_asprintf(&match_tmp,
 							"%s," ACS_SAMEUSR, dstgrp);
 						}
 					}
-					else if (acs_strnstr(s, "," ACS_ANYUSR, LN_SIZEOF(s))) {
+					else if (acs_strstr(s, "," ACS_ANYUSR)) {
 						acs_asprintf(&match_tmp,
 						"%s," ACS_ANYUSR, dstgrp);
 					}
-					else if (!strncmp(s, ACS_ANYUSR ",",
-					CSTR_SZ(ACS_ANYUSR ","))) {
+					else if (!strcmp(s, ACS_ANYUSR ",")) {
 						acs_asprintf(&match_tmp,
 						ACS_ANYUSR ",%s", dstegrp);
 					}
@@ -448,14 +438,12 @@ _again:
 						"%s,%s", dstgrp, dstegrp);
 					tp = match_tmp;
 				}
-				if (!strncmp(s, tp, LN_SIZEOF(match_dstspec)))
-					setflag(&ret, M_DGRP);
+				if (!strcmp(s, tp)) setflag(&ret, M_DGRP);
 				else return 0;
 				break;
 			case 2: /* dstgrps,... */
 				if (!strcmp(s, ACS_ANYUSR)) setflag(&ret, M_DANYGPS);
-				else if (!strncmp(s, dstgrps, LN_SIZEOF(match_dstspec)))
-					setflag(&ret, M_DGPS);
+				else if (!strcmp(s, dstgrps)) setflag(&ret, M_DGPS);
 				else return 0;
 				break;
 		}

@@ -33,7 +33,7 @@ char *usermap_gethash(const char *user)
 	size_t x, sz;
 
 	sz = DYN_ARRAY_SZ(usermaps);
-	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strncmp(usermaps[x].user, user, ACS_ALLOC_MAX)) return usermaps[x].hash;
+	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strcmp(usermaps[x].user, user)) return usermaps[x].hash;
 	return NULL;
 }
 
@@ -42,7 +42,7 @@ uid_t usermap_getuid(const char *user)
 	size_t x, sz;
 
 	sz = DYN_ARRAY_SZ(usermaps);
-	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strncmp(usermaps[x].user, user, ACS_ALLOC_MAX)) return usermaps[x].uid;
+	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strcmp(usermaps[x].user, user)) return usermaps[x].uid;
 	return NOUID;
 }
 
@@ -51,7 +51,7 @@ gid_t usermap_getgid(const char *user)
 	size_t x, sz;
 
 	sz = DYN_ARRAY_SZ(usermaps);
-	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strncmp(usermaps[x].user, user, ACS_ALLOC_MAX)) return usermaps[x].gid;
+	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strcmp(usermaps[x].user, user)) return usermaps[x].gid;
 	return NOGID;
 }
 
@@ -60,7 +60,7 @@ char *usermap_getudir(const char *user)
 	size_t x, sz;
 
 	sz = DYN_ARRAY_SZ(usermaps);
-	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strncmp(usermaps[x].user, user, ACS_ALLOC_MAX)) return usermaps[x].udir;
+	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strcmp(usermaps[x].user, user)) return usermaps[x].udir;
 	return NULL;
 }
 
@@ -69,7 +69,7 @@ char *usermap_getushell(const char *user)
 	size_t x, sz;
 
 	sz = DYN_ARRAY_SZ(usermaps);
-	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strncmp(usermaps[x].user, user, ACS_ALLOC_MAX)) return usermaps[x].shell;
+	for (x = 0; x < sz; x++) if (usermaps[x].user) if (!strcmp(usermaps[x].user, user)) return usermaps[x].shell;
 	return NULL;
 }
 

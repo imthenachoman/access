@@ -721,7 +721,7 @@ _badenv:	pfree(s);
 			l = 0;
 			d = acs_strdup("/");
 		}
-		if (strncmp(d+l, s, ACS_ALLOC_MAX) != 0) xexits("access denied");
+		if (strcmp(d+l, s) != 0) xexits("access denied");
 		if (d != pcr.cwd) pfree(d);
 	}
 	else {
