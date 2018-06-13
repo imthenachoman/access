@@ -666,6 +666,12 @@ void set_variable(const char *spec, int init)
 		if (yes_or_no(d) == YESNO_YES) match_type = MATCH_REGEX;
 		return;
 	}
+
+	if (!strcmp(s, "regexusers")) {
+		if (yes_or_no(d) == YESNO_YES) regexusers = 1;
+		else regexusers = 0;
+		return;
+	}
 #endif
 
 	if (!strcmp(s, "fnmatch")) {
@@ -826,6 +832,11 @@ void unset_variable(const char *name)
 #ifdef WITH_REGEX
 	if (!strcmp(name, "regex")) {
 		match_type = MATCH_FNMATCH;
+		return;
+	}
+
+	if (!strcmp(name, "regexusers")) {
+		regexusers = 0;
 		return;
 	}
 #endif

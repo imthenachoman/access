@@ -1,4 +1,4 @@
-.Dd 09Jun2018
+.Dd 13Jun2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -148,6 +148,16 @@ does
 matching of patterns (very lightweight regex subform). Setting this to
 .Sq no
 will reset it back to fnmatch. See
+.Sx REGULAR EXPRESSIONS
+section below for additional information.
+
+.It Va regexusers=[yes|no]
+Enable regex matching of user and group names which are specified in rules.
+Classic matching is then turned off, matching is done entirely on the regex engine.
+Format is kept as usual, the identifiers specified between
+.Sq :
+are matched. Grouplists are matched as whole: no parsing of individual group names is performed.
+See
 .Sx REGULAR EXPRESSIONS
 section below for additional information.
 

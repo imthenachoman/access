@@ -150,6 +150,9 @@ int taskprio_conf = PRIO_INVALID;
 #endif
 
 int match_type = MATCH_FNMATCH;
+#ifdef WITH_REGEX
+int regexusers;
+#endif
 
 flagtype auth;
 int noblame;

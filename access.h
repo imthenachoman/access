@@ -250,6 +250,9 @@ extern int taskprio_arg, taskprio_conf;
 #define MATCH_STRCMP 1
 
 extern int match_type;
+#ifdef WITH_REGEX
+extern int regexusers;
+#endif
 
 extern flagtype auth;
 extern int noblame;

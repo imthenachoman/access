@@ -301,14 +301,26 @@ _again:
 		switch (x) {
 			case 0: /* srcusr */
 				if (!strcmp(s, srcusr) || !strcmp(s, ACS_ANYUSR)) ret = 1;
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, srcusr, MATCH_REGEX))
+					ret = 1;
+#endif
 				else return 0;
 				break;
 			case 1: /* srcgrp */
 				if (!strcmp(s, srcgrp) || !strcmp(s, ACS_ANYUSR)) ret = 1;
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, srcgrp, MATCH_REGEX))
+					ret = 1;
+#endif
 				else return 0;
 				break;
 			case 2: /* srcgrps,... */
 				if (!strcmp(s, srcgrps) || !strcmp(s, ACS_ANYUSR)) ret = 1;
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, srcgrps, MATCH_REGEX))
+					ret = 1;
+#endif
 				else if (acs_strchr(s, '*')
 				&& match_pattern_type(s, srcgrps, MATCH_FNMATCH)) ret = 1;
 				else if (acs_strchr(s, '+')) {
@@ -397,10 +409,15 @@ _again:
 					tp = match_tmp;
 				}
 				if (!strcmp(s, tp)) setflag(&ret, M_DUSR);
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, tp, MATCH_REGEX))
+					setflag(&ret, M_DUSR);
+#endif
 				else return 0;
 				break;
 			case 1: /* dstgrp,dstegrp */
-				if (!strcmp(s, ACS_ANYUSR) || !strcmp(s, ACS_ANYUSR "," ACS_ANYUSR)) {
+				if (!strcmp(s, ACS_ANYUSR)
+				|| !strcmp(s, ACS_ANYUSR "," ACS_ANYUSR)) {
 					setflag(&ret, M_DANYGRP);
 					break;
 				}
@@ -439,11 +456,19 @@ _again:
 					tp = match_tmp;
 				}
 				if (!strcmp(s, tp)) setflag(&ret, M_DGRP);
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, tp, MATCH_REGEX))
+					setflag(&ret, M_DGRP);
+#endif
 				else return 0;
 				break;
 			case 2: /* dstgrps,... */
 				if (!strcmp(s, ACS_ANYUSR)) setflag(&ret, M_DANYGPS);
 				else if (!strcmp(s, dstgrps)) setflag(&ret, M_DGPS);
+#ifdef WITH_REGEX
+				else if (regexusers && match_pattern_type(s, dstgrps, MATCH_REGEX))
+					setflag(&ret, M_DGPS);
+#endif
 				else return 0;
 				break;
 		}
