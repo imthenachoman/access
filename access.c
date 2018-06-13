@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 	char **tpp;
 	int usage_long_req = 0;
 	char *c_arg = NULL, *d_arg = NULL;
-	flagtype pui_flags = 0;
+	acs_flag pui_flags = 0;
 	pid_t bgpid;
 	gid_t tgid, *tgids;
 	int tgsz;

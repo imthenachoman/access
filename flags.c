@@ -28,17 +28,17 @@
 
 #include "access.h"
 
-int isflag(flagtype flags, flagtype flag)
+int isflag(acs_flag flags, acs_flag flag)
 {
 	return (!!(flags & flag));
 }
 
-void setflag(flagtype *flags, flagtype flag)
+void setflag(acs_flag *flags, acs_flag flag)
 {
 	*flags |= flag;
 }
 
-void unsetflag(flagtype *flags, flagtype flag)
+void unsetflag(acs_flag *flags, acs_flag flag)
 {
 	*flags &= ~flag;
 }

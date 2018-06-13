@@ -127,7 +127,7 @@
 
 #include "port.h"
 
-typedef unsigned long flagtype;
+typedef unsigned long acs_flag;
 
 struct usermap {
 	char *user;
@@ -156,7 +156,7 @@ extern int fullinfo;
 
 extern pid_t ourpid, parentpid;
 extern char *timefmt, *logfmt;
-extern flagtype suflags, argflags, notargflags;
+extern acs_flag suflags, argflags, notargflags;
 extern char *execname;
 extern char *spath, *supath, *logpath;
 extern char *prompt, *denymsg;
@@ -197,7 +197,7 @@ extern struct usermap *usermaps;
 struct envvar {
 	char *name;
 	char *value;
-	flagtype class; /* single EVC_* class */
+	acs_flag class; /* single EVC_* class */
 };
 
 extern struct envvar *envvars;
@@ -254,7 +254,7 @@ extern int match_type;
 extern int regexusers;
 #endif
 
-extern flagtype auth;
+extern acs_flag auth;
 extern int noblame;
 
 extern char *errstr;
@@ -298,7 +298,7 @@ int free_conf(void);
 void free_conf_all(void);
 char *get_conf_line(void);
 int open_conf(const char *path);
-void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype *argflags_p, flagtype *notargflags_p);
+void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag *argflags_p, acs_flag *notargflags_p);
 void readin_usermaps(void);
 void readin_default_settings(void);
 void set_variable(const char *spec, int init);
@@ -361,10 +361,10 @@ struct fmtstr_args;
 void acs_setenv(const char *name, const char *value, int overwrite);
 void acs_unsetenv(const char *name);
 void clear_environ(void);
-int is_envvar_exists(const char *name, flagtype class);
-void add_envvar(const char *name, const char *value, flagtype class);
-void delete_envvars(const char *dname, flagtype class, int match_wildcards);
-void add_envvar_pair(const char *spec, flagtype class);
+int is_envvar_exists(const char *name, acs_flag class);
+void add_envvar(const char *name, const char *value, acs_flag class);
+void delete_envvars(const char *dname, acs_flag class, int match_wildcards);
+void add_envvar_pair(const char *spec, acs_flag class);
 int is_scary_envvar(const char *spec);
 void kill_scary_envvars(int suser);
 int builtin_envvar_enable(struct def_envvar_list *el, size_t elsz, const char *pattern, int state);
@@ -394,9 +394,9 @@ int execute(const char *p, char *const argv[], pid_t *bgpid);
 
 /* flags.c */
 
-int isflag(flagtype flags, flagtype flag);
-void setflag(flagtype *flags, flagtype flag);
-void unsetflag(flagtype *flags, flagtype flag);
+int isflag(acs_flag flags, acs_flag flag);
+void setflag(acs_flag *flags, acs_flag flag);
+void unsetflag(acs_flag *flags, acs_flag flag);
 
 /* getpasswd.c */
 
@@ -439,7 +439,7 @@ int match_pattern_type(const char *pattern, const char *string, int type);
 int match_pattern(const char *pattern, const char *string);
 const char *get_match_type(int type);
 int get_match_type_byname(const char *s);
-flagtype execute_rule_match(void);
+acs_flag execute_rule_match(void);
 
 /* memory.c */
 

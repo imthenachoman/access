@@ -112,7 +112,7 @@ int get_match_type_byname(const char *s)
 
 #define LN_SIZEOF(s) (ACS_ALLOC_MAX-(s-ln))
 
-flagtype execute_rule_match(void)
+acs_flag execute_rule_match(void)
 {
 	static char *match_tmp, *match_spath;
 	char *match_srcspec, *match_dstspec, *match_flgspec, *match_cmdpat;
@@ -125,8 +125,8 @@ flagtype execute_rule_match(void)
 	struct fmtstr_args *fsa;
 	struct fmtstr_state fst;
 	size_t nr_fsa;
-	flagtype suflags_l, argflags_l, notargflags_l;
-	flagtype ret = 0;
+	acs_flag suflags_l, argflags_l, notargflags_l;
+	acs_flag ret = 0;
 	size_t a, b;
 
 	if (!srcusr || !srcgrp || !srcgrps

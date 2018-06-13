@@ -203,10 +203,10 @@ int open_conf(const char *path)
 #define xsetflag(x, y) do { setflag(x, y); if (single) goto _ret; } while (0)
 #define xunsetflag(x, y) do { unsetflag(x, y); if (single) goto _ret; } while (0)
 #define xnotargflag(z, x, y) do { z ? unsetflag(x, y) : setflag(x, y); if (single) goto _ret; } while (0)
-void resolve_flags(const char *sflags, int single, flagtype *suflags_p, flagtype *argflags_p, flagtype *notargflags_p)
+void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag *argflags_p, acs_flag *notargflags_p)
 {
 	char *s, *d, *t;
-	flagtype suflags_l = 0, argflags_l = 0, notargflags_l = 0;
+	acs_flag suflags_l = 0, argflags_l = 0, notargflags_l = 0;
 	int notarg; char carg;
 	static char *flags_tmp;
 

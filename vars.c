@@ -45,7 +45,7 @@ void *access_memory_pool;
 
 pid_t ourpid, parentpid;
 char *timefmt, *logfmt;
-flagtype suflags, argflags, notargflags;
+acs_flag suflags, argflags, notargflags;
 char *execname;
 char *spath, *supath, *logpath;
 char *prompt, *denymsg;
@@ -154,7 +154,7 @@ int match_type = MATCH_FNMATCH;
 int regexusers;
 #endif
 
-flagtype auth;
+acs_flag auth;
 int noblame;
 
 char *errstr;

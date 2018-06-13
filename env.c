@@ -51,7 +51,7 @@ void clear_environ(void)
 	*environ = NULL;
 }
 
-int is_envvar_exists(const char *name, flagtype class)
+int is_envvar_exists(const char *name, acs_flag class)
 {
 	size_t x, y;
 
@@ -75,7 +75,7 @@ int is_envvar_exists(const char *name, flagtype class)
 	return 0;
 }
 
-void add_envvar(const char *name, const char *value, flagtype class)
+void add_envvar(const char *name, const char *value, acs_flag class)
 {
 	size_t x, y;
 
@@ -117,7 +117,7 @@ static void free_envvar(struct envvar *ev)
 	pfree(ev->value);
 }
 
-void delete_envvars(const char *dname, flagtype class, int match_wildcards)
+void delete_envvars(const char *dname, acs_flag class, int match_wildcards)
 {
 	size_t x, y;
 	int f;
@@ -133,7 +133,7 @@ void delete_envvars(const char *dname, flagtype class, int match_wildcards)
 	}
 }
 
-void add_envvar_pair(const char *spec, flagtype class)
+void add_envvar_pair(const char *spec, acs_flag class)
 {
 	char *var, *s, *d;
 
@@ -249,7 +249,7 @@ void kill_scary_envvars(int suser)
 	}
 }
 
-static void unset_envvars(flagtype class, int match_wildcards)
+static void unset_envvars(acs_flag class, int match_wildcards)
 {
 	size_t x, y;
 
@@ -260,7 +260,7 @@ static void unset_envvars(flagtype class, int match_wildcards)
 	}
 }
 
-static void set_envvars(flagtype class, int noparse)
+static void set_envvars(acs_flag class, int noparse)
 {
 	static char *t;
 	size_t x, y;
