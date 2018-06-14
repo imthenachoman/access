@@ -28,8 +28,6 @@
 
 #include "access.h"
 
-int refind_exec;
-
 struct conf_stack {
 	char *path; /* fs path */
 	void *cfg; /* confdata handle */

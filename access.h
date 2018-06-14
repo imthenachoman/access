@@ -255,6 +255,8 @@ extern int regexusers;
 #endif
 
 extern acs_flag auth;
+extern char *matched_dir;
+extern int refind_exec;
 extern int noblame;
 
 extern char *errstr;

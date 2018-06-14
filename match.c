@@ -28,9 +28,6 @@
 
 #include "access.h"
 
-char *matched_dir;
-extern int refind_exec;
-
 int match_pattern_type(const char *pattern, const char *string, int type)
 {
 	static char *sp, *ss;

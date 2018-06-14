@@ -155,6 +155,8 @@ int regexusers;
 #endif
 
 acs_flag auth;
+char *matched_dir;
+int refind_exec;
 int noblame;
 
 char *errstr;
