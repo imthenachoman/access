@@ -113,117 +113,117 @@ void blame(const char *f, ...)
 		if (custom_blame_str) pfree(s);
 	}
 
-	if (!noblame) {
-		/* This is where I insult invoker */
-		block_tty(&ttyinfo, 1);
-		usleep(delay);
-		block_tty(&ttyinfo, 0);
-		if (denymsg) {
-			preset_fsa_full(&fsa, &nr_fsa);
-			if (custom_blame_str) s = custom_blame_str;
-			else s = reason_str;
-			APPEND_FSA(fsa, nr_fsa, "reason", 0, "%s", s);
+	if (noblame) goto _out;
 
-			acs_memzero(&fst, sizeof(struct fmtstr_state));
-			fst.args = fsa;
-			fst.nargs = nr_fsa;
-			fst.fmt = denymsg;
-			fst.result = denymsg_parsed;
-			fst.result_sz = acs_szalloc(denymsg_parsed);
-			parse_fmtstr(&fst);
-			pfree(fsa);
+	/* This is where I insult invoker */
+	block_tty(&ttyinfo, 1);
+	usleep(delay);
+	block_tty(&ttyinfo, 0);
+	if (denymsg) {
+		preset_fsa_full(&fsa, &nr_fsa);
+		if (custom_blame_str) s = custom_blame_str;
+		else s = reason_str;
+		APPEND_FSA(fsa, nr_fsa, "reason", 0, "%s", s);
 
-			if (blamecmd) {
-				s = NULL;
-				tenvp = NULL;
+		acs_memzero(&fst, sizeof(struct fmtstr_state));
+		fst.args = fsa;
+		fst.nargs = nr_fsa;
+		fst.fmt = denymsg;
+		fst.result = denymsg_parsed;
+		fst.result_sz = acs_szalloc(denymsg_parsed);
+		parse_fmtstr(&fst);
+		pfree(fsa);
 
-				blamesetenv(s, "%s=%s", "PATH", auditspath ? auditspath : get_spath());
-				blamesetenv(s, "%s=%s", "ACCESS_DENYMSG", fst.trunc ? denymsg : denymsg_parsed);
-				blamesetenv(s, "%s=%u", "ACCESS_PID", ourpid);
-				blamesetenv(s, "%s=%u", "ACCESS_PPID", parentpid);
+		if (blamecmd) {
+			s = NULL;
+			tenvp = NULL;
 
-				blamesetenv(s, "%s=%s", "ACCESS_DATETIME", curr_date);
-				blamesetenv(s, "%s=%u", "ACCESS_TIMESTAMP", curr_time);
+			blamesetenv(s, "%s=%s", "PATH", auditspath ? auditspath : get_spath());
+			blamesetenv(s, "%s=%s", "ACCESS_DENYMSG", fst.trunc ? denymsg : denymsg_parsed);
+			blamesetenv(s, "%s=%u", "ACCESS_PID", ourpid);
+			blamesetenv(s, "%s=%u", "ACCESS_PPID", parentpid);
 
-				blamesetenv(s, "%s=%u", "ACCESS_UID", srcuid);
-				blamesetenv(s, "%s=%s", "ACCESS_USER", srcusr);
-				blamesetenv(s, "%s=%u", "ACCESS_GID", srcgid);
-				blamesetenv(s, "%s=%s", "ACCESS_GROUP", srcgrp);
-				blamesetenv(s, "%s=%s", "ACCESS_GIDS", srcgidss);
-				blamesetenv(s, "%s=%s", "ACCESS_GROUPS", srcgrps);
+			blamesetenv(s, "%s=%s", "ACCESS_DATETIME", curr_date);
+			blamesetenv(s, "%s=%u", "ACCESS_TIMESTAMP", curr_time);
 
-				blamesetenv(s, "%s=%u", "ACCESS_D_UID", dstuid);
-				blamesetenv(s, "%s=%u", "ACCESS_D_EUID", dsteuid);
-				blamesetenv(s, "%s=%s", "ACCESS_D_USER", dstusr);
-				blamesetenv(s, "%s=%s", "ACCESS_D_EUSER", dsteusr);
-				blamesetenv(s, "%s=%u", "ACCESS_D_GID", dstgid);
-				blamesetenv(s, "%s=%u", "ACCESS_D_EGID", dstegid);
-				blamesetenv(s, "%s=%s", "ACCESS_D_GROUP", dstgrp);
-				blamesetenv(s, "%s=%s", "ACCESS_D_EGROUP", dstegrp);
-				blamesetenv(s, "%s=%s", "ACCESS_D_GIDS", dstgidss);
-				blamesetenv(s, "%s=%s", "ACCESS_D_GROUPS", dstfgrps);
+			blamesetenv(s, "%s=%u", "ACCESS_UID", srcuid);
+			blamesetenv(s, "%s=%s", "ACCESS_USER", srcusr);
+			blamesetenv(s, "%s=%u", "ACCESS_GID", srcgid);
+			blamesetenv(s, "%s=%s", "ACCESS_GROUP", srcgrp);
+			blamesetenv(s, "%s=%s", "ACCESS_GIDS", srcgidss);
+			blamesetenv(s, "%s=%s", "ACCESS_GROUPS", srcgrps);
 
-				blamesetenv(s, "%s=%s", "ACCESS_FLAGS", trigflags);
+			blamesetenv(s, "%s=%u", "ACCESS_D_UID", dstuid);
+			blamesetenv(s, "%s=%u", "ACCESS_D_EUID", dsteuid);
+			blamesetenv(s, "%s=%s", "ACCESS_D_USER", dstusr);
+			blamesetenv(s, "%s=%s", "ACCESS_D_EUSER", dsteusr);
+			blamesetenv(s, "%s=%u", "ACCESS_D_GID", dstgid);
+			blamesetenv(s, "%s=%u", "ACCESS_D_EGID", dstegid);
+			blamesetenv(s, "%s=%s", "ACCESS_D_GROUP", dstgrp);
+			blamesetenv(s, "%s=%s", "ACCESS_D_EGROUP", dstegrp);
+			blamesetenv(s, "%s=%s", "ACCESS_D_GIDS", dstgidss);
+			blamesetenv(s, "%s=%s", "ACCESS_D_GROUPS", dstfgrps);
 
-				blamesetenv(s, "%s=%s", "ACCESS_LINE", trigline);
+			blamesetenv(s, "%s=%s", "ACCESS_FLAGS", trigflags);
 
-				blamesetenv(s, "%s=%s", "ACCESS_MATCH_TYPE", get_match_type(match_type));
+			blamesetenv(s, "%s=%s", "ACCESS_LINE", trigline);
 
-				blamesetenv(s, "%s=%s", "ACCESS_BINPATH", execfpath);
-				blamesetenv(s, "%s=%s", "ACCESS_CMDLINE", cmdline);
-if (hashbang) {			blamesetenv(s, "%s=%s", "ACCESS_HASHBANG", hashbang); }
+			blamesetenv(s, "%s=%s", "ACCESS_MATCH_TYPE", get_match_type(match_type));
 
-				blamesetenv(s, "%s=%s", "ACCESS_USERENV", buserenv);
-				blamesetenv(s, "%s=%s", "ACCESS_ENVIRON", benviron);
+			blamesetenv(s, "%s=%s", "ACCESS_BINPATH", execfpath);
+			blamesetenv(s, "%s=%s", "ACCESS_CMDLINE", cmdline);
+if (hashbang) {		blamesetenv(s, "%s=%s", "ACCESS_HASHBANG", hashbang); }
 
-				blamesetenv(s, "%s=%u", "ACCESS_FIRST_ARG", acs_optind);
-				blamesetenv(s, "%s=%s", "ACCESS_ARGS", bfullargv);
-				blamesetenv(s, "%s=%s", "ACCESS_PATH", get_spath());
+			blamesetenv(s, "%s=%s", "ACCESS_USERENV", buserenv);
+			blamesetenv(s, "%s=%s", "ACCESS_ENVIRON", benviron);
 
-				blamesetenv(s, "%s=%s", "ACCESS_LOCKFILE", lockfile ? lockfile : "<unset>");
+			blamesetenv(s, "%s=%u", "ACCESS_FIRST_ARG", acs_optind);
+			blamesetenv(s, "%s=%s", "ACCESS_ARGS", bfullargv);
+			blamesetenv(s, "%s=%s", "ACCESS_PATH", get_spath());
+
+			blamesetenv(s, "%s=%s", "ACCESS_LOCKFILE", lockfile ? lockfile : "<unset>");
 
 if (ttyinfo.fd != -1) {
-				blamesetenv(s, "%s=%s", "ACCESS_TTY", ttyinfo.ttyname);
+			blamesetenv(s, "%s=%s", "ACCESS_TTY", ttyinfo.ttyname);
 }
-				blamesetenv(s, "%s=%s", "ACCESS_CWD", cwd);
-				blamesetenv(s, "%s=%s", "ACCESS_USRDIR", dstusrdir);
-				blamesetenv(s, "%s=%s", "ACCESS_USRSHELL", dstusrshell);
+			blamesetenv(s, "%s=%s", "ACCESS_CWD", cwd);
+			blamesetenv(s, "%s=%s", "ACCESS_USRDIR", dstusrdir);
+			blamesetenv(s, "%s=%s", "ACCESS_USRSHELL", dstusrshell);
 if (isflag(argflags, ARG_D) || isflag(argflags, ARG_d)) {
-				blamesetenv(s, "%s=%s", "ACCESS_CHDIR", dstdir);
+			blamesetenv(s, "%s=%s", "ACCESS_CHDIR", dstdir);
 }
 if (schrootdir && chrootdir) {
-				blamesetenv(s, "%s=%s", "ACCESS_CHROOT", chrootdir);
+			blamesetenv(s, "%s=%s", "ACCESS_CHROOT", chrootdir);
 }
 
-				blamesetenv(s, "%s=%s", "ACCESS_CONF", PATH_CONF);
+			blamesetenv(s, "%s=%s", "ACCESS_CONF", PATH_CONF);
 #ifdef SYSLOG_SUPPORT
-				blamesetenv(s, "%s=%s", "ACCESS_LOG", isflag(suflags, FLG_SYSLOG) ? "<syslog>" : logpath);
+			blamesetenv(s, "%s=%s", "ACCESS_LOG", isflag(suflags, FLG_SYSLOG) ? "<syslog>" : logpath);
 #else
-				blamesetenv(s, "%s=%s", "ACCESS_LOG", logpath);
+			blamesetenv(s, "%s=%s", "ACCESS_LOG", logpath);
 #endif
 #ifdef _ACCESS_VERSION
-				blamesetenv(s, "%s=%s", "ACCESS_VERSION", _ACCESS_VERSION);
+			blamesetenv(s, "%s=%s", "ACCESS_VERSION", _ACCESS_VERSION);
 #endif
-				pfree(s);
+			pfree(s);
 
-				s = acs_strdup(blamecmd);
-				targv = parse_cmdline(s);
-				if (!targv) goto _out;
-				tpp = targv;
-				if (*(targv+1)) tpp++;
-				if (is_abs_rel(*targv) != PATH_ABSOLUTE) goto _out;
-				reseterr();
-				extern_prog_running = 1;
-				forkexec(0, *targv, tpp, tenvp, NULL, NULL, NULL, 0);
-				extern_prog_running = 0;
-				destroy_argv(&tenvp);
-				pfree(targv);
-				pfree(s);
-			}
-			else {
-				if (fst.trunc) acs_esay("%s", denymsg);
-				else acs_esay("%s", denymsg_parsed);
-			}
+			s = acs_strdup(blamecmd);
+			targv = parse_cmdline(s);
+			if (!targv) goto _out;
+			tpp = targv;
+			if (*(targv+1)) tpp++;
+			if (is_abs_rel(*targv) != PATH_ABSOLUTE) goto _out;
+			reseterr();
+			extern_prog_running = 1;
+			forkexec(0, *targv, tpp, tenvp, NULL, NULL, NULL, 0);
+			extern_prog_running = 0;
+			destroy_argv(&tenvp);
+			pfree(targv);
+			pfree(s);
+		}
+		else {
+			if (fst.trunc) acs_esay("%s", denymsg);
+			else acs_esay("%s", denymsg_parsed);
 		}
 	}
 
