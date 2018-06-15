@@ -110,8 +110,9 @@ char *get_config_line(void *config)
 	}
 
 _again:
-	line = acs_strtok_r(cfg->t ? NULL : cfg->d, "\n", &cfg->t);
+	line = acs_strtok_r(cfg->d, "\n", &cfg->t);
 	if (!line) return NULL;
+	if (cfg->d) cfg->d = NULL;
 	cfg->currlnum++;
 	if (cfg->t) {
 		s = cfg->cfgdata;
