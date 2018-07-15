@@ -814,18 +814,23 @@ _badenv:	pfree(s);
 			while (nfds) {
 				if (poll(pfd, nfds, -1) == -1 && errno != EINTR) break;
 				if (pfd[0].revents) {
+					if (pfd[0].revents & POLLERR) break;
 					errno = 0;
 					l = read(ptsi.ptsfd, data, ACS_ALLOC_MAX);
 					if (l == NOSIZE && errno != EAGAIN) break;
 					write(recvfds[1], data, l);
+					if (pfd[0].revents & POLLHUP) break;
 				}
 				if (pfd[1].revents) {
+					if (pfd[1].revents & POLLERR) goto _poll_pfd1_dis;
 					l = read(recvfds[0], data, ACS_ALLOC_MAX);
 					if (l == NOSIZE) {
+_poll_pfd1_dis:					if (nfds < 2) continue;
 						pfd[1].revents = 0;
 						nfds--;
 					}
 					else write(ptsi.ptsfd, data, l);
+					if (pfd[0].revents & POLLHUP) goto _poll_pfd1_dis;
 				}
 			}
 
