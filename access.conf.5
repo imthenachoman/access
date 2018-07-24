@@ -1,4 +1,4 @@
-.Dd 13Jun2018
+.Dd 24Jul2018
 .Dt ACCESS.CONF 5
 
 .Sh NAME
@@ -257,7 +257,7 @@ Do logging of every invoked command.
 
 This is default.
 
-.It Va nolog
+.It Va -log
 Turns off logging of invoked command.
 
 .It Va logfail
@@ -265,7 +265,7 @@ Log failed attempts.
 
 This is default.
 
-.It Va nologfail
+.It Va -logfail
 Do not log failed attempts.
 
 .It Va minfd=int
@@ -303,7 +303,7 @@ accepts, or Skein internal one, generated with
 .Dq access -c mkpwd ,
 if Skein hash support was compiled in.
 
-.It Va nopw
+.It Va -pw
 Do not ask any passwords, authentication successful if no other conditions are blocking.
 
 .It Va dstpw
@@ -322,7 +322,7 @@ Forces access to consider authentication failure. This can be useful in rules, n
 If access command line option
 .Op Fl [X]
 is banned with
-.Va noopt_[X]
+.Va -[X]
 and it does not require additional permission parameters to be set, then if this is specified,
 permits invoker to reenter password to prove his identity. Then, sysadmin can configure what
 password type must be asked by setting one of password flags listed above.
@@ -336,7 +336,7 @@ flag will not have any effect there anymore if banned cmdline option state was t
 .It Va tty
 Verify that invoker runs access from an existing terminal. If this is not a case (for example, access is invoked from a daemon), authentication will fail.
 
-.It Va notty
+.It Va -tty
 Do not verify invoker's tty state.
 
 .It Va fromtty=/dev/tty
@@ -346,7 +346,7 @@ Specify a valid tty for which a test will be successful. For example, one can re
 .It Va ttydt
 Detach tty from target program, but still accept input. Prevents tty hijacking on vulnerable operating system kernels.
 
-.It Va nottydt
+.It Va -ttydt
 Do not detach tty from target program.
 
 .It Va clearenv
@@ -366,8 +366,8 @@ and banned ones) are still reset or removed.
 .It Va egid
 Enable setuid or setgid usage. This does not permit to set arbitrary ids, if not permitted by rules.
 
-.It Va noeuid
-.It Va noegid
+.It Va -euid
+.It Va -egid
 Disable setuid or setgid usage. Even if permitted by matching rule, setting euid != ruid will be denied. The same is with egid.
 
 .It Va numid
@@ -375,7 +375,7 @@ Permit numeric user and group names (such as specifying
 .Op Fl u Ar 1000
 instead of specifying real user name which owns 1000 uid)
 
-.It Va nonumid
+.It Va -numid
 Disable numeric user and group names. This is default.
 
 .It Va usronly
@@ -386,32 +386,25 @@ options and permits only
 option.
 This flag does not have an opposite analog, but can be cancelled with others enabling specified features.
 
-.It Va nousronly
+.It Va -usronly
 Cancels any effects previously imposed by
 .Va usronly .
 
-.It noopt_[X]
+.It -[X]
 Disable usage of command line option 
 .Em X .
-.Em X
-can be one of
-.Op dDeSaAPIbBxnFCLQplwv .
-Any other command line options are declared as free for use.
 
-By default, these command line options are restricted, but can be enabled:
-.Op aACdeLQ
-
-.It opt_[X]
+.It +[X]
 Enable usage of command line option
 .Em X .
 
-.It nologin
+.It -login
 Synonym for
-.Va noopt_l ,
+.Va -l ,
 disables logins by using any of
 .Op Fl Il .
 
-.It Va nolock
+.It Va -lock
 By default, access creates a lock file for every uid running it, successfully or unsuccessfully. This disables lock file creation thus disables multiple running processes check.
 
 .It Va warnusr
@@ -429,7 +422,7 @@ and if user will try to type something else, he will get a single hint about wha
 
 Note that disagreement means failure and likely result in log file entry.
 
-.It Va nowarnusr
+.It Va -warnusr
 Do not warn invoker about what to be done.
 
 Note that some

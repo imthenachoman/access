@@ -222,13 +222,13 @@ void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag
 		if (d) d = NULL;
 
 		if (!strcmp(s, "log")) xsetflag(&suflags_l, FLG_LOG);
-		if (!strcmp(s, "nolog")) xunsetflag(&suflags_l, FLG_LOG);
+		if (!strcmp(s, "-log")) xunsetflag(&suflags_l, FLG_LOG);
 		if (!strcmp(s, "logfail")) xsetflag(&suflags_l, FLG_LOGFAIL);
-		if (!strcmp(s, "nologfail")) xunsetflag(&suflags_l, FLG_LOGFAIL);
+		if (!strcmp(s, "-logfail")) xunsetflag(&suflags_l, FLG_LOGFAIL);
 		if (!strcmp(s, "tty")) xsetflag(&suflags_l, FLG_TTY);
-		if (!strcmp(s, "notty")) xunsetflag(&suflags_l, FLG_TTY);
+		if (!strcmp(s, "-tty")) xunsetflag(&suflags_l, FLG_TTY);
 		if (!strcmp(s, "pw")) xsetflag(&suflags_l, FLG_PW);
-		if (!strcmp(s, "nopw")) {
+		if (!strcmp(s, "-pw")) {
 			unsetflag(&suflags_l, FLG_PW);
 			unsetflag(&suflags_l, FLG_DSTPW);
 			if (single) goto _ret;
@@ -244,11 +244,11 @@ void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag
 		if (!strcmp(s, "userenv")) xunsetflag(&suflags_l, FLG_CLRENV);
 		if (!strcmp(s, "keepenv")) xsetflag(&suflags_l, FLG_KEEPENV);
 		if (!strcmp(s, "euid")) xunsetflag(&suflags_l, FLG_NOEUID);
-		if (!strcmp(s, "noeuid")) xsetflag(&suflags_l, FLG_NOEUID);
+		if (!strcmp(s, "-euid")) xsetflag(&suflags_l, FLG_NOEUID);
 		if (!strcmp(s, "egid")) xunsetflag(&suflags_l, FLG_NOEGID);
-		if (!strcmp(s, "noegid")) xsetflag(&suflags_l, FLG_NOEGID);
-		if (!strcmp(s, "nonumid")) xsetflag(&suflags_l, FLG_NONUMID);
+		if (!strcmp(s, "-egid")) xsetflag(&suflags_l, FLG_NOEGID);
 		if (!strcmp(s, "numid")) xunsetflag(&suflags_l, FLG_NONUMID);
+		if (!strcmp(s, "-numid")) xsetflag(&suflags_l, FLG_NONUMID);
 		if (!strcmp(s, "usronly")) {
 			setflag(&suflags_l, FLG_USRONLY);
 			setflag(&suflags_l, FLG_NOEUID);
@@ -256,7 +256,7 @@ void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag
 			setflag(&suflags_l, FLG_NONUMID);
 			if (single) goto _ret;
 		}
-		if (!strcmp(s, "nousronly")) {
+		if (!strcmp(s, "-usronly")) {
 			unsetflag(&suflags_l, FLG_USRONLY);
 			unsetflag(&suflags_l, FLG_NOEUID);
 			unsetflag(&suflags_l, FLG_NOEGID);
@@ -264,9 +264,10 @@ void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag
 			if (single) goto _ret;
 		}
 
-		if (!is_super_user() && (!strncmp(s, "noopt_", 6) || !strncmp(s, "opt_", 4))) {
-			notarg = !!(!strncmp(s, "no", 2)); /* if begin with "no" -> notarg = 1 */
-			carg = notarg ? *(s+6) : *(s+4);
+		if (!is_super_user() && acs_strnlen(s, ACS_ALLOC_MAX) == 2
+		&& ((*s == '+') || (*s == '-'))) {
+			notarg = !!(*s == '-');
+			carg = *(s+1);
 
 			switch (carg) {
 				case 'd': xnotargflag(notarg, &notargflags_l, ARG_d); break;
@@ -295,13 +296,13 @@ void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag
 				default: break;
 			}
 		}
-		if (!is_super_user() && !strcmp(s, "nologin")) xnotargflag(1, &notargflags_l, ARG_l);
+		if (!is_super_user() && !strcmp(s, "-login")) xnotargflag(1, &notargflags_l, ARG_l);
 
 		if (!strcmp(s, "ttydt")) xsetflag(&suflags_l, FLG_TTYDETACH);
-		if (!strcmp(s, "nottydt")) xunsetflag(&suflags_l, FLG_TTYDETACH);
-		if (!strcmp(s, "nolock")) xsetflag(&suflags_l, FLG_NOLOCK);
+		if (!strcmp(s, "-ttydt")) xunsetflag(&suflags_l, FLG_TTYDETACH);
+		if (!strcmp(s, "-lock")) xsetflag(&suflags_l, FLG_NOLOCK);
 		if (!strcmp(s, "warnusr")) xsetflag(&suflags_l, FLG_WARNUSR);
-		if (!strcmp(s, "nowarnusr")) xunsetflag(&suflags_l, FLG_WARNUSR);
+		if (!strcmp(s, "-warnusr")) xunsetflag(&suflags_l, FLG_WARNUSR);
 	}
 
 _ret:	if (suflags_p) *suflags_p = suflags_l;

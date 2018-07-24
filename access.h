@@ -33,7 +33,7 @@
 
 #include "config.h"
 
-#define DEFAULT_FLAGS "pw,log,logfail,clearenv,nonumid,noopt_a,noopt_A,noopt_d,noopt_e,noopt_L,noopt_Q,noopt_P,noopt_W"
+#define DEFAULT_FLAGS "pw,log,logfail,clearenv,-numid,-a,-A,-d,-e,-L,-Q,-P,-W"
 #define PASSWORD_PROMPT "Password:"
 #define DENY_MSG "Permission denied."
 #define DELAY_WRPASS 1000000
