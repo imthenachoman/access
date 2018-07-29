@@ -92,7 +92,7 @@ specifier, the limitation is intentional because in early versions of access, it
 .Bd -literal -offset 8n
 %set pwecho
 %set pwinval
-%set tty,opt_d,opt_D
+%set tty,+d,+D
 .Ed
 
 Now, you must do it like that:
@@ -100,8 +100,8 @@ Now, you must do it like that:
 %set pwecho
 %set pwinval
 %set tty
-%set opt_d
-%set opt_D
+%set +d
+%set +D
 .Ed
 
 , which is still not ideal, but at least clearer.
@@ -315,7 +315,7 @@ Ask for superuser password. Superuser's name is resolved by access at the very b
 .It Va false
 Forces access to consider authentication failure. This can be useful in rules, not globally, to specify "always false" rules with wide user or cmdline wildcards. As an example, you can prevent accessing a "sda" disk device by most privileged user so he will not destroy data on it:
 .Bd -literal -offset 8n
-* * false,nopw,nolog,nologfail *sda*
+* * false,-pw,-log,-logfail *sda*
 .Ed
 
 .It Va pwinval
@@ -330,7 +330,7 @@ access defaults to banning any activity early if one of banned command line opti
 by the invoker, denying him even to input a valid password, thus
 .Va pwinval
 degrades this ban to password level authentication. Note that
-.Va nopw
+.Va -pw
 flag will not have any effect there anymore if banned cmdline option state was triggered by invoker.
 
 .It Va tty
@@ -439,7 +439,7 @@ this flag permits chroot into specified directory. Without
 it is not automatically performed, so invoker interaction is required.
 
 Note:
-.Va opt_R
+.Dq %set +R
 is mandatory to enable
 .Op Fl R
 usage.
@@ -621,7 +621,7 @@ setting (but see note under this list).
 .It
 .Ev ACCESS_LOCKFILE
 : contains a full path to uid lock file which is held when access is running. If
-.Va nolock
+.Dq %set -lock
 is applied, then this variable will contain "<unset>" static string.
 .It
 .Ev ACCESS_TTY
@@ -697,21 +697,21 @@ is not set to them simultaneously, access interprets them specially.
 : access sets
 .Va pw
 flag internally when it sees this return value, even if
-.Va nopw
+.Va -pw
 was previously in effect. Then asks invoker for his own password.
 .It
 .Va 253
 : access sets
 .Va dstpw,pw
 flags internally when it sees this return value, even if
-.Va nopw
+.Va -pw
 was previously in effect. Then asks invoker for a target user password.
 .It
 .Va 252
 : access sets
 .Va supw,pw
 flags internally when it sees this return value, even if
-.Va nopw
+.Va -pw
 was previously in effect. Then asks invoker for a superuser password.
 .El
 
@@ -861,7 +861,7 @@ program receives plus these environment variables:
 allows user to set their own environment variables with
 .Op Fl e
 option, but only if this option was allowed to use with
-.Dq %set opt_e
+.Dq %set +e
 or in individual matching rule flags.
 To control user's intentions in a reasonable limits, access gives an ability to set, unset or alter environment variables explicitly from configuration file. access also carries a predefined lists of
 .Em trusted
@@ -965,7 +965,7 @@ uid=9999(test) gid=9999(test) groups=9999(test)
 , and you will be permitted to run programs as
 .Em test ,
 you will see this (assuming
-.Va nopw
+.Va -pw
 is set):
 .Bd -literal -offset 8n
 % id test
@@ -1580,51 +1580,51 @@ The following real world usage example is made from more than one year of using 
 %set spath=/bin:/sbin:/local/bin:/local/sbin
 %set delay=200000
 %set tty
-%set nolock
-%set opt_d
-%set opt_D
+%set -lock
+%set +d
+%set +D
 # next provides each program an information about
 # that it was run through access.
 %setenv LD_NORPATH=1
 %setenv _ACCESS_AUTH=1
 
 # deny any access to /dev/sda.
-* * false,nopw,nolog,nologfail *sda*
+* * false,-pw,-log,-logfail *sda*
 
 ### superuser ###
-lynx root nopw,nolog /bin/dmesg
-lynx root nopw,nolog /bin/sh -c "dmesg | tail -n5"
-lynx root nopw,nolog /bin/ps *
-lynx root nopw,nolog /bin/ss *
-lynx root nopw,nolog /bin/ping *
-lynx root nopw,nolog /bin/traceroute *
-lynx root nopw,nolog /bin/ping6 *
-lynx root nopw,nolog /bin/traceroute6 *
-lynx root nopw,nolog /bin/lsof *
-lynx root nopw,nolog /sbin/iptables -vnL *
-lynx root nopw,nolog /sbin/ip6tables -vnL *
-lynx root nopw,nolog /sbin/iftop *
+lynx root -pw,-log /bin/dmesg
+lynx root -pw,-log /bin/sh -c "dmesg | tail -n5"
+lynx root -pw,-log /bin/ps *
+lynx root -pw,-log /bin/ss *
+lynx root -pw,-log /bin/ping *
+lynx root -pw,-log /bin/traceroute *
+lynx root -pw,-log /bin/ping6 *
+lynx root -pw,-log /bin/traceroute6 *
+lynx root -pw,-log /bin/lsof *
+lynx root -pw,-log /sbin/iptables -vnL *
+lynx root -pw,-log /sbin/ip6tables -vnL *
+lynx root -pw,-log /sbin/iftop *
 
-lynx root nopw,warnusr /bin/ip *
+lynx root -pw,warnusr /bin/ip *
 
 # suspend
-lynx root nopw,notty,nolog /sbin/suspend
+lynx root -pw,-tty,-log /sbin/suspend
 
 # start/stop/restart X11
-lynx root nopw,notty,nolog /etc/init/rc.X11 *
+lynx root -pw,-tty,-log /etc/init/rc.X11 *
 
 ## setuid things ##
 
 # watch traffic with wireshark
-lynx <same>,root nopw,notty,nolog /bin/execvp /local/bin/dumpcap.real dumpcap *
+lynx <same>,root -pw,-tty,-log /bin/execvp /local/bin/dumpcap.real dumpcap *
 # watch traffic with tcpdump
-lynx root nopw,notty /sbin/tcpdump *
+lynx root -pw,-tty /sbin/tcpdump *
 
 # vlock
-lynx <same>,root nopw,notty,nolog /bin/execvp /bin/busybox vlock
+lynx <same>,root -pw,-tty,-log /bin/execvp /bin/busybox vlock
 
 # slock does logging, but it is forbidden to syslog without log group
-lynx lynx:lynx:log,wheel nopw,notty,nolog /bin/execvp /local/bin/slock.real slock
+lynx lynx:lynx:log,wheel -pw,-tty,-log /bin/execvp /local/bin/slock.real slock
 
 ## vfs operations ##
 
@@ -1635,105 +1635,105 @@ lynx lynx:lynx:log,wheel nopw,notty,nolog /bin/execvp /local/bin/slock.real sloc
 # because the system where this access is installed has busybox
 # installed as a regular, not setuid executable, for security reasons.
 
-lynx root nopw /bin/chattr [+-]i -- *
-lynx root nopw,nolog /bin/mount /dev/sd* /mnt
-lynx root nopw,nolog /bin/mount * /dev/sd* /mnt
-lynx root nopw,nolog /bin/mount /dev/sr* /mnt
-lynx root nopw,nolog /bin/mount * /dev/sr* /mnt
-lynx root nopw,nolog /bin/mount /dev/loop* /mnt
-lynx root nopw,nolog /bin/mount * /dev/loop* /mnt
-lynx root nopw,nolog /bin/mount *remount* /mnt
-lynx root nopw,nolog /bin/umount /mnt
-lynx root nopw,nolog /sbin/hdparm -qz /dev/sd*
-lynx root nopw,nolog /sbin/fdisk -lu /dev/sd*
-lynx root nopw,nolog /bin/chgrp lynx /dev/sd*
-lynx root nopw,nolog /bin/chgrp disk /dev/sd*
-lynx root nopw,nolog /bin/chgrp lynx /dev/sr*
-lynx root nopw,nolog /bin/chgrp disk /dev/sr*
-lynx root nopw,nolog /bin/chgrp lynx /dev/loop*
-lynx root nopw,nolog /bin/chgrp disk /dev/loop*
-lynx root nopw,nolog /local/bin/setfacl * /dev/sd*
-lynx root nopw,nolog /local/bin/setfacl * /dev/sr*
-lynx root nopw,nolog /local/bin/setfacl * /dev/loop*
-lynx root nopw,nolog /bin/file -s /dev/sd*
-lynx root nopw,nolog /bin/file -s /dev/sr*
-lynx root nopw,nolog /bin/file -s /dev/loop*
-lynx root nopw,nolog /bin/file -sL /dev/loop*
-lynx root nopw,nolog /local/sbin/smartctl * /dev/sd*
+lynx root -pw /bin/chattr [+-]i -- *
+lynx root -pw,-log /bin/mount /dev/sd* /mnt
+lynx root -pw,-log /bin/mount * /dev/sd* /mnt
+lynx root -pw,-log /bin/mount /dev/sr* /mnt
+lynx root -pw,-log /bin/mount * /dev/sr* /mnt
+lynx root -pw,-log /bin/mount /dev/loop* /mnt
+lynx root -pw,-log /bin/mount * /dev/loop* /mnt
+lynx root -pw,-log /bin/mount *remount* /mnt
+lynx root -pw,-log /bin/umount /mnt
+lynx root -pw,-log /sbin/hdparm -qz /dev/sd*
+lynx root -pw,-log /sbin/fdisk -lu /dev/sd*
+lynx root -pw,-log /bin/chgrp lynx /dev/sd*
+lynx root -pw,-log /bin/chgrp disk /dev/sd*
+lynx root -pw,-log /bin/chgrp lynx /dev/sr*
+lynx root -pw,-log /bin/chgrp disk /dev/sr*
+lynx root -pw,-log /bin/chgrp lynx /dev/loop*
+lynx root -pw,-log /bin/chgrp disk /dev/loop*
+lynx root -pw,-log /local/bin/setfacl * /dev/sd*
+lynx root -pw,-log /local/bin/setfacl * /dev/sr*
+lynx root -pw,-log /local/bin/setfacl * /dev/loop*
+lynx root -pw,-log /bin/file -s /dev/sd*
+lynx root -pw,-log /bin/file -s /dev/sr*
+lynx root -pw,-log /bin/file -s /dev/loop*
+lynx root -pw,-log /bin/file -sL /dev/loop*
+lynx root -pw,-log /local/sbin/smartctl * /dev/sd*
 # setup loop mounts
-lynx root nopw /sbin/losetup *
+lynx root -pw /sbin/losetup *
 # mark block device as readonly - and no way back
-lynx root nopw,nolog /sbin/blockdev --setro /dev/sd*
+lynx root -pw,-log /sbin/blockdev --setro /dev/sd*
 # record and erase CD/DVD - yes, even cdrecord is not setuid.
-lynx root nopw,notty /local/sbin/cdrecord -dev=3,0,0 *
+lynx root -pw,-tty /local/sbin/cdrecord -dev=3,0,0 *
 
 # poweroff/reboot must warn me
-lynx root nopw,nolog,warnusr /sbin/dreboot *
-lynx root nopw,nolog,warnusr /sbin/dpoweroff *
-lynx root nopw,nolog,warnusr /sbin/reboot *
-lynx root nopw,nolog,warnusr /sbin/poweroff *
+lynx root -pw,-log,warnusr /sbin/dreboot *
+lynx root -pw,-log,warnusr /sbin/dpoweroff *
+lynx root -pw,-log,warnusr /sbin/reboot *
+lynx root -pw,-log,warnusr /sbin/poweroff *
 ### superuser ###
 
 ### lynx ###
 ## playing with chroots
 # /data/tmp/R must exist and owned by root...
 %set root=/mnt
-lynx lynx:lynx:lynx nopw,notty,opt_R <all>
-lynx test:test:test nopw,notty,opt_R <all>
+lynx lynx:lynx:lynx -pw,-tty,+R <all>
+lynx test:test:test -pw,-tty,+R <all>
 %set root=/data/tmp/R
-lynx lynx:lynx:lynx nopw,notty,opt_R <all>
-lynx test:test:test nopw,notty,opt_R <all>
+lynx lynx:lynx:lynx -pw,-tty,+R <all>
+lynx test:test:test -pw,-tty,+R <all>
 %unset root
 
 ## gaining special group access ##
 
 ## cdrom
-lynx lynx:lynx:cdrom nopw,nolog <all>
-lynx lynx:lynx:+cdrom nopw,nolog <all>
+lynx lynx:lynx:cdrom -pw,-log <all>
+lynx lynx:lynx:+cdrom -pw,-log <all>
 
 ## floppy
-lynx lynx:lynx:floppy nopw,nolog <all>
-lynx lynx:lynx:+floppy nopw,nolog <all>
+lynx lynx:lynx:floppy -pw,-log <all>
+lynx lynx:lynx:+floppy -pw,-log <all>
 
 ## dialout
-lynx lynx:lynx:dialout nopw,nolog <all>
-lynx lynx:lynx:+dialout nopw,nolog <all>
+lynx lynx:lynx:dialout -pw,-log <all>
+lynx lynx:lynx:+dialout -pw,-log <all>
 
 ## net - not with full privileges
-lynx lynx:lynx:net nopw,nolog,warnusr <all>
+lynx lynx:lynx:net -pw,-log,warnusr <all>
 
 ## kvm
-lynx lynx:lynx:kvm nopw,notty,nolog <all>
-lynx lynx:lynx:kvm,vnet nopw,notty,nolog <all>
+lynx lynx:lynx:kvm -pw,-tty,-log <all>
+lynx lynx:lynx:kvm,vnet -pw,-tty,-log <all>
 
 ## tinc
-lynx lynx:lynx:tinc nopw,notty,nolog <all>
+lynx lynx:lynx:tinc -pw,-tty,-log <all>
 
 ## loopback access
-lynx lynx nopw,nolog,userenv,opt_e <all>
-lynx lynx:lynx:lynx nopw,nolog,userenv,opt_e <all>
+lynx lynx -pw,-log,userenv,+e <all>
+lynx lynx:lynx:lynx -pw,-log,userenv,+e <all>
 ### lynx ###
 
 ### other users lynx has access to ###
-lynx test nopw,notty,nolog <all>
-lynx test:test:audio nopw,notty,nolog <all>
-lynx test:test:video nopw,notty,nolog <all>
-lynx test:test:audio,video nopw,notty,nolog <all>
-lynx inet nopw,notty,nolog <all>
-lynx mail nopw,notty,nolog <all>
-lynx etech nopw,notty,nolog <all>
+lynx test -pw,-tty,-log <all>
+lynx test:test:audio -pw,-tty,-log <all>
+lynx test:test:video -pw,-tty,-log <all>
+lynx test:test:audio,video -pw,-tty,-log <all>
+lynx inet -pw,-tty,-log <all>
+lynx mail -pw,-tty,-log <all>
+lynx etech -pw,-tty,-log <all>
 ### other users lynx has access to ###
 
 ### users to other users ###
-inet inet nopw,notty,nolog /local/firefox/firefox *
-psi inet nopw,notty,nolog /local/firefox/firefox *
-mail inet nopw,notty,nolog /local/firefox/firefox *
+inet inet -pw,-tty,-log /local/firefox/firefox *
+psi inet -pw,-tty,-log /local/firefox/firefox *
+mail inet -pw,-tty,-log /local/firefox/firefox *
 ### users to other users ###
 
 # by default, only lynx:lynx with group wheel has full access
 # to his own system, but first verified with his own password,
 # and his actions with this rule are always logged.
-lynx:lynx:+wheel * pw,notty,opt_L <all>
+lynx:lynx:+wheel * pw,-tty,+L <all>
 .Ed
 
 .Sh SEE ALSO
