@@ -42,8 +42,6 @@
 static int acsmatch_quiet;
 static int acsmatch_verbose;
 
-static char *acsmatch_tmp;
-
 static void acsmatch_usage(void)
 {
 	acs_say("usage: acsmatch [-qvb] type pattern string");
@@ -83,11 +81,6 @@ int acsmatch_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz,
 	type = get_match_type_byname(argv[acs_optind]);
 	if (type <= 0) acsmatch_usage();
 	if (!argv[acs_optind+1] || !argv[acs_optind+2]) acsmatch_usage();
-
-	if (type == MATCH_REGEX) {
-		acs_asprintf(&acsmatch_tmp, "^%s$", argv[acs_optind+1]);
-		argv[acs_optind+1] = acsmatch_tmp;
-	}
 
 	status = match_pattern_type(argv[acs_optind+1], argv[acs_optind+2], type);
 

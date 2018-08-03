@@ -28,6 +28,22 @@
 
 #include "access.h"
 
+#ifdef WITH_REGEX
+static void fixup_regex_pattern(char **s, size_t sz)
+{
+	char *z = *s;
+	size_t n = acs_strnlen(z, sz ? sz : ACS_ALLOC_MAX);
+
+	if (sz && sz-n < 3) return;
+	if (n && *z == '^' && *(z+n-1) == '$') return;
+
+	if (sz == 0) z = *s = acs_realloc(z, n+3);
+	memmove(z+1, z, n);
+	*z = '^';
+	*(z+n+1) = '$';
+}
+#endif
+
 int match_pattern_type(const char *pattern, const char *string, int type)
 {
 	static char *sp, *ss;
@@ -44,6 +60,8 @@ int match_pattern_type(const char *pattern, const char *string, int type)
 
 #ifdef WITH_REGEX
 	if (type == MATCH_REGEX) {
+		fixup_regex_pattern(&sp, ACS_ALLOC_MAX);
+
 		status = regcomp(&r, sp, REG_EXTENDED | REG_NOSUB);
 		if (status) {
 			size_t x;
@@ -65,20 +83,6 @@ int match_pattern_type(const char *pattern, const char *string, int type)
 	if (type == MATCH_FNMATCH) return fnmatch(sp, ss, 0) == 0 ? 1 : 0;
 	if (type == MATCH_STRCMP) return strcmp(sp, ss) == 0 ? 1 : 0;
 	return 0;
-}
-
-static void fixup_regex_pattern(char **s, size_t sz)
-{
-	char *z = *s;
-	size_t n = acs_strnlen(z, sz ? sz : ACS_ALLOC_MAX);
-
-	if (sz && sz-n < 3) return;
-	if (n && *z == '^' && *(z+n-1) == '$') return;
-
-	if (sz == 0) z = *s = acs_realloc(z, n+3);
-	memmove(z+1, z, n);
-	*z = '^';
-	*(z+n+1) = '$';
 }
 
 int match_pattern(const char *pattern, const char *string)
@@ -233,16 +237,13 @@ _again:
 	/* Fast check for certain flags, part 1 - NO isflag()! */
 	if (chrootdir) {
 		if (!schrootdir) return 0;
-		if (match_type == MATCH_REGEX) fixup_regex_pattern(&schrootdir, 0);
 		if (!match_pattern(schrootdir, chrootdir)) return 0;
 	}
 	else if (schrootdir && !chrootdir) return 0;
 	if (fromtty) {
-		if (match_type == MATCH_REGEX) fixup_regex_pattern(&fromtty, 0);
 		if (!match_pattern(fromtty, ttyinfo.ttyname)) return 0;
 	}
 	if (scwd) {
-		if (match_type == MATCH_REGEX) fixup_regex_pattern(&scwd, 0);
 		if (!match_pattern(scwd, cwd)) return 0;
 	}
 
@@ -287,7 +288,6 @@ _again:
 	if (isflag(suflags_l, FLG_NOEUID) && strcmp(dstusr, dsteusr) != 0) return 0;
 	if (isflag(suflags_l, FLG_NOEGID) && strcmp(dstgrp, dstegrp) != 0) return 0;
 	if (sdstdir && isflag(argflags_l, ARG_d)) {
-		if (match_type == MATCH_REGEX) fixup_regex_pattern(&sdstdir, 0);
 		if (!match_pattern(sdstdir, dstdir)) return 0;
 	}
 
@@ -554,8 +554,6 @@ _skipthis:
 		a = b;
 	}
 	acs_strlcpy(match_spath, s, a);
-
-	if (match_type == MATCH_REGEX) fixup_regex_pattern(&match_cmdpat, LN_SIZEOF(match_cmdpat));
 
 	x = is_abs_rel(execname);
 	if (x) { /* match by absolute/relative path */
