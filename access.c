@@ -1061,7 +1061,7 @@ _bypassaudit:
 	if (setreuid(dstuid, dsteuid) == -1) xerror("setreuid");
 #endif
 
-	if (!is_super_user() && !needs_super_user() && open(PATH_CONF, O_RDONLY) != -1) xexits("failed to change uids!");
+	if (!verify_config_access()) xexits("failed to change uids!");
 	errno = 0;
 
 /* |--^,--^,--^,--^,-- access - target border line --^,--^,--^,--^,--^,--^,--^,--^,--^,--^,--^,--^,--| */

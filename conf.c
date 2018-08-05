@@ -34,6 +34,7 @@ struct conf_stack {
 };
 
 static struct conf_stack *config_stack;
+static char **saved_config_paths;
 
 static struct conf_stack *get_cur_conf(void)
 {
@@ -103,6 +104,30 @@ int free_conf(void)
 void free_conf_all(void)
 {
 	while (1) if (!free_conf()) return;
+}
+
+static void save_config_path(const char *path)
+{
+	size_t sz;
+
+	sz = DYN_ARRAY_SZ(saved_config_paths);
+	saved_config_paths = acs_realloc(saved_config_paths, (sz+1) * sizeof(char *));
+	saved_config_paths[sz] = acs_strdup(path);
+}
+
+int verify_config_access(void)
+{
+	size_t sz, x;
+
+	sz = DYN_ARRAY_SZ(saved_config_paths);
+	for (x = 0; x < sz; x++) {
+		if (!is_super_user() && !needs_super_user()
+		&& open(saved_config_paths[x], O_RDONLY) != -1) return 0;
+		pfree(saved_config_paths[x]);
+	}
+	pfree(saved_config_paths);
+
+	return 1;
 }
 
 char *get_conf_line(void)
@@ -195,6 +220,7 @@ int open_conf(const char *path)
 
 	close(fd);
 	add_conf_to_stack(path, cfg);
+	save_config_path(path);
 	return 1;
 }
 

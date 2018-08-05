@@ -298,6 +298,7 @@ int get_cur_conf_lnum(void);
 int *pget_cur_conf_lnum(void);
 int free_conf(void);
 void free_conf_all(void);
+int verify_config_access(void);
 char *get_conf_line(void);
 int open_conf(const char *path);
 void resolve_flags(const char *sflags, int single, acs_flag *suflags_p, acs_flag *argflags_p, acs_flag *notargflags_p);
