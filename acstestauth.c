@@ -28,6 +28,10 @@
 
 #include "access.h"
 
+#ifndef HAVE_UNIX_CRYPT
+#undef WITH_ACSTESTAUTH_PROG
+#endif
+
 #ifdef WITH_ACSTESTAUTH_PROG
 
 /*

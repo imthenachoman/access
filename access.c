@@ -28,6 +28,11 @@
 
 #include "access.h"
 
+#ifndef HAVE_UNIX_CRYPT
+#undef WITH_ACSMKPWD_PROG
+#undef WITH_ACSTESTAUTH_PROG
+#endif
+
 extern char *matched_dir;
 extern int refind_exec;
 

@@ -37,11 +37,6 @@
 #define CLIENT_PATH_CONF "/etc/client.access.conf"
 /* daccess socket path. This can be overriden. */
 #define DACCESS_SOCK_PATH "/tmp/daccess"
-/*
- * daccess control password. It is not necessary to keep secret,
- * but just to verify client program is daccess too.
- */
-#define DACCESS_PASSWORD "Tm8EtJvlUI"
 #endif
 /* use static storage (automatically enabled if PIE support is enabled) */
 /* #define WITH_STATIC_MEMORY */
@@ -55,8 +50,6 @@
 #define SYSLOG_SUPPORT
 /* Do you have classic Unix crypt(3) function? You probably do. */
 #define HAVE_UNIX_CRYPT
-/* If not, you can use portable Skein/tf1024 one, shipped with access. */
-#define WITH_SKEIN_CRYPT
 /* You build for OS X with it's insane setgroups(2) */
 /* #define WITH_GROUPSLIMIT */
 /* Your system has setres{u,g}id syscall. Modern Unixes have this today. But see NOTTODO. */

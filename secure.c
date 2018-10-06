@@ -79,6 +79,15 @@ int cfg_permission(const struct stat *st, int dir)
 	return 1;
 }
 
+const char *acs_crypt(const char *key, const char *salt)
+{
+#ifdef HAVE_UNIX_CRYPT
+	return crypt(key, salt);
+#else
+	return "*";
+#endif
+}
+
 #define blamesetenv(to, fmt, ss, dd)								\
 	do {											\
 		size_t sz;									\

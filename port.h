@@ -105,12 +105,6 @@ typedef void (*sighandler_t)(int);
 #define LOG_AUTHPRIV LOG_AUTH
 #endif
 
-#ifndef HAVE_UNIX_CRYPT
-#ifndef WITH_SKEIN_CRYPT
-#error You did not enabled system or Skein crypt(3)! Preventing possible system lockout.
-#endif
-#endif
-
 #ifdef HAVE_UNIX_CRYPT
 extern char *crypt(const char *, const char *);
 #endif

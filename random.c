@@ -77,14 +77,8 @@ char *make_random_salt(void)
 	unsigned int l;
 	char *r, *R, c;
 
-#ifdef WITH_SKEIN_CRYPT
-	l = acs_randrange(6, 18);
-	r = R = acs_malloc(l+5);
-	strcpy(r, "$U$"); r += 3;
-#else
 	r = R = acs_malloc(4);
 	l = 2;
-#endif
 	while (l) {
 		c = (char)acs_randrange(0, UCHAR_MAX);
 		if ((c >= 'a' && c <= 'z')
@@ -95,10 +89,6 @@ char *make_random_salt(void)
 			l--;
 		}
 	}
-#ifdef WITH_SKEIN_CRYPT
-	*r = '$';
-	*(r+1) = 0;
-#endif
 
 	return R;
 }

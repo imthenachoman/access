@@ -50,11 +50,6 @@
  * is desired, or where FS does not support even this ancient access bit.
  */
 
-#ifndef WITH_SKEIN_CRYPT
-#error Skein is required by daccess!
-#endif
-#include "tf1024.h"
-
 static int daccess_serverfd = -1, daccess_clfd = -1;
 static int daccess_retval;
 static char *daccess_sockname;
@@ -64,8 +59,6 @@ static char **daccess_nargv, **daccess_orig_argv;
 static int daccess_server;
 static int daccess_nodaemon;
 static int daccess_nostatus;
-
-static char *daccess_password;
 
 static void daccess_closefd(int fd);
 
@@ -662,21 +655,6 @@ _noproc:	pcr.ruid = pcr.euid = cr.uid;
 	if (pcr.rgid != cr.gid) return 1;
 	daccess_send_ack(clfd);
 
-	access_getrandom(data, TF_KEY_SIZE);
-	daccess_send_data(clfd, data, TF_KEY_SIZE);
-	s = data + TF_KEY_SIZE;
-	sk1024(daccess_password, acs_szalloc(daccess_password), s, TF_MAX_BITS);
-	for (x = 0; x < TF_KEY_SIZE; x++) data[x] ^= s[x];
-	daccess_receive_data(clfd, s, TF_KEY_SIZE);
-	if (!memcmp(data, s, TF_KEY_SIZE)) {
-		daccess_send_ack(clfd);
-	}
-	else {
-		daccess_send_int(clfd, 0);
-		return 1;
-	}
-	acs_memzero(data, ACS_ALLOC_MAX);
-
 	/* args */
 	rargc = daccess_receive_int(clfd);
 	if (rargc < 0 || rargc > ACS_ALLOC_SMALL) return 1;
@@ -915,12 +893,9 @@ static int client_connect(const char *sockname, int argc, char **argv)
 {
 	size_t l;
 	int x, *sendfds, maxfd;
-	char *cwd, *sdata, *udata;
+	char *cwd;
 
 	daccess_retval = 1;
-
-	sdata = acs_malloc(TF_KEY_SIZE);
-	udata = acs_malloc(TF_KEY_SIZE);
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGTERM, SIG_IGN);
@@ -933,15 +908,6 @@ static int client_connect(const char *sockname, int argc, char **argv)
 
 	daccess_send_ack(daccess_clfd);
 	if (daccess_receive_ack(daccess_clfd) != 1) goto _fail;
-
-	l = daccess_receive_data(daccess_clfd, sdata, TF_KEY_SIZE);
-	if (l != TF_KEY_SIZE) goto _fail;
-	sk1024(daccess_password, acs_szalloc(daccess_password), udata, TF_MAX_BITS);
-	for (x = 0; x < TF_KEY_SIZE; x++) sdata[x] ^= udata[x];
-	daccess_send_data(daccess_clfd, sdata, TF_KEY_SIZE);
-	if (daccess_receive_ack(daccess_clfd) != 1) goto _fail;
-	pfree(sdata);
-	pfree(udata);
 
 	/* args */
 	if (*argv) {
@@ -1012,7 +978,6 @@ static void daccess_usage(void)
 	acs_say("  -c: connect to server with default sock path \"%s\"", DACCESS_SOCK_PATH);
 	acs_say("  -S sock: start server, but specify own socket path");
 	acs_say("  -C sock: connect to server with specified socket path");
-	acs_say("  -p passwd: set daccess control password (will be erased from args)");
 	acs_say("  -F: do not daemonise the server, so errors are visible");
 	acs_say("  -N: do not try to open /proc/pid/status, use basic socket credentials");
 	acs_say("  -R root: (daemon only) chroot into root directory before operations");
@@ -1026,7 +991,6 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 
 	daccess_orig_argv = argv;
 	sockname = acs_strdup(DACCESS_SOCK_PATH);
-	daccess_password = acs_strdup(DACCESS_PASSWORD);
 
 	if (!strcmp(progname, "daccessd")) {
 		acs_optind = 1;
@@ -1042,7 +1006,7 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 	set_progname("daccess");
 
 	acs_opterr = 0;
-	while ((c = acs_getopt(argc, argv, "scS:C:p:FNR:")) != -1) {
+	while ((c = acs_getopt(argc, argv, "scS:C:FNR:")) != -1) {
 		switch (c) {
 			case 'F': daccess_nodaemon = 1; break;
 			case 'N': daccess_nostatus = 1; break;
@@ -1050,10 +1014,6 @@ int daccess_main(int argc, char **argv, uid_t srcuid, gid_t srcgid, int srcgsz, 
 			case 'c': daccess_server = 0; break;
 			case 'S': daccess_server = 1; pfree(sockname); sockname = acs_strdup(acs_optarg); break;
 			case 'C': daccess_server = 0; pfree(sockname); sockname = acs_strdup(acs_optarg); break;
-			case 'p':
-				daccess_password = acs_strdup(acs_optarg);
-				memset(acs_optarg, 'x', strlen(acs_optarg));
-				break;
 			case 'R': daccess_chroot_dir = acs_strdup(acs_optarg); break;
 			default: daccess_usage(); break;
 		}

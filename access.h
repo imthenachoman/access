@@ -320,11 +320,6 @@ int *config_current_line_number(void *config);
 void reset_config(void *config);
 void free_config(void *config);
 
-/* crypt.c */
-
-char *acs_crypt_r(const char *clear, const char *salt, char *output);
-char *acs_crypt(const char *key, const char *salt);
-
 /* date.c */
 
 void init_datetime(void);
@@ -515,6 +510,7 @@ int needs_super_user(void);
 int is_setuid(void);
 char *get_spath(void);
 int cfg_permission(const struct stat *st, int dir);
+const char *acs_crypt(const char *key, const char *salt);
 void blame(const char *f, ...);
 void close_fd_range(int startfd, int endfd);
 int runaway(void);
