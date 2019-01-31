@@ -82,7 +82,8 @@ int cfg_permission(const struct stat *st, int dir)
 const char *acs_crypt(const char *key, const char *salt)
 {
 #ifdef HAVE_UNIX_CRYPT
-	return crypt(key, salt);
+	char *p = crypt(key, salt);
+	return p ? p : "*";
 #else
 	return "*";
 #endif

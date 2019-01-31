@@ -79,8 +79,10 @@ int forkexec(int vp, const char *path, char *const argv[], char *const envp[], p
 				if (errno != EAGAIN && errno != EINTR) break;
 			close(epfd[0]);
 			if (x) {
-				close(pfd[0]);
-				close(pfd[1]);
+				if (pfd) {
+					close(pfd[0]);
+					close(pfd[1]);
+				}
 				errno = x;
 				return -1;
 			}
